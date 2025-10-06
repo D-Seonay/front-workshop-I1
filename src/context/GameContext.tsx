@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { mockRoomApi, RoomPlayer } from '@/services/mockRoomApi';
 
 interface GameContextType {
   playerRole: 'agent' | 'operator' | null;
@@ -7,6 +8,8 @@ interface GameContextType {
   currentCity: string | null;
   timeElapsed: number;
   isTimerRunning: boolean;
+  currentUserId: string;
+  roomPlayers: RoomPlayer[];
   setPlayerRole: (role: 'agent' | 'operator') => void;
   setSessionId: (id: string) => void;
   completeCity: (city: string) => void;
@@ -14,6 +17,7 @@ interface GameContextType {
   startTimer: () => void;
   stopTimer: () => void;
   resetTimer: () => void;
+  updateRoomPlayers: (players: RoomPlayer[]) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -37,6 +41,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [currentCity, setCurrentCity] = useState<string | null>(null);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [currentUserId] = useState(mockRoomApi.getCurrentUserId());
+  const [roomPlayers, setRoomPlayers] = useState<RoomPlayer[]>([]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -61,6 +67,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     setIsTimerRunning(false);
   };
 
+  const updateRoomPlayers = (players: RoomPlayer[]) => {
+    setRoomPlayers(players);
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -70,6 +80,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         currentCity,
         timeElapsed,
         isTimerRunning,
+        currentUserId,
+        roomPlayers,
         setPlayerRole,
         setSessionId,
         completeCity,
@@ -77,6 +89,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         startTimer,
         stopTimer,
         resetTimer,
+        updateRoomPlayers,
       }}
     >
       {children}

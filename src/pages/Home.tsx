@@ -5,22 +5,58 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Landmark, Plus, LogIn, Globe } from 'lucide-react';
+import { mockRoomApi } from '@/services/mockRoomApi';
+import { useToast } from '@/hooks/use-toast';
 
 const Home = () => {
   const navigate = useNavigate();
   const { setSessionId } = useGame();
   const [joinCode, setJoinCode] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const { toast } = useToast();
 
-  const createSession = () => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setSessionId(code);
-    navigate('/lobby');
+  const createSession = async () => {
+    setIsCreating(true);
+    try {
+      const { room } = await mockRoomApi.createRoom();
+      setSessionId(room.id);
+      navigate('/lobby');
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de créer la session",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const joinSession = () => {
-    if (joinCode.trim()) {
-      setSessionId(joinCode.toUpperCase());
-      navigate('/lobby');
+  const joinSession = async () => {
+    if (!joinCode.trim()) return;
+    
+    setIsJoining(true);
+    try {
+      const result = await mockRoomApi.joinRoom(joinCode.toUpperCase());
+      if (result) {
+        setSessionId(result.room.id);
+        navigate('/lobby');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Session introuvable",
+          description: "Le code de session est invalide ou la partie a déjà commencé",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de rejoindre la session",
+      });
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -66,8 +102,9 @@ const Home = () => {
                 onClick={createSession} 
                 className="w-full mt-auto shadow-glow-gold"
                 size="lg"
+                disabled={isCreating}
               >
-                Nouvelle Mission
+                {isCreating ? 'Création...' : 'Nouvelle Mission'}
               </Button>
             </div>
           </Card>
@@ -97,9 +134,9 @@ const Home = () => {
                   variant="secondary"
                   className="w-full"
                   size="lg"
-                  disabled={!joinCode.trim()}
+                  disabled={!joinCode.trim() || isJoining}
                 >
-                  Rejoindre
+                  {isJoining ? 'Connexion...' : 'Rejoindre'}
                 </Button>
               </div>
             </div>
