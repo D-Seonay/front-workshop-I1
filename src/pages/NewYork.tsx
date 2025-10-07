@@ -257,7 +257,6 @@ const NewYork = () => {
       <ModalEndGame
         open={showModal}
         cityName="New York"
-        code="ARTS"
         onContinue={handleContinue}
       />
     </div>

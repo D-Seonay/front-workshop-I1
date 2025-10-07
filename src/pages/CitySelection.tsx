@@ -65,17 +65,20 @@ const CitySelection = () => {
             const isLocked = !city.unlocked;
 
             return (
-              <Card
-                key={city.id}
-                className={`relative p-6 cursor-pointer transition-all ${
-                  isLocked
-                    ? 'opacity-50 cursor-not-allowed'
-                    : isCompleted
-                    ? 'border-primary bg-primary/5 shadow-glow-gold'
-                    : 'hover:border-primary/50 hover:shadow-elegant'
-                }`}
-                onClick={() => handleCitySelect(city)}
-              >
+                <Card
+                    key={city.id}
+                    className={`relative p-6 transition-all ${
+                        isLocked
+                            ? 'opacity-40 cursor-not-allowed'
+                            : isCompleted
+                                ? 'opacity-70 border-primary bg-primary/5 shadow-glow-gold cursor-not-allowed'
+                                : 'cursor-pointer hover:border-primary/50 hover:shadow-elegant'
+                    }`}
+                    onClick={() => {
+                      if (isLocked || isCompleted) return;
+                      handleCitySelect(city);
+                    }}
+                >
                 {isCompleted && (
                   <div className="absolute top-3 right-3">
                     <CheckCircle className="w-6 h-6 text-primary" />

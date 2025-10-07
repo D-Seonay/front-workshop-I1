@@ -216,7 +216,6 @@ const Paris = () => {
       <ModalEndGame
         open={showModal}
         cityName="Paris"
-        code="LISA"
         onContinue={handleContinue}
       />
     </div>
