@@ -12,7 +12,7 @@ import NewYork from "./pages/NewYork";
 import Tokyo from "./pages/Tokyo";
 import Credits from "./pages/Credits";
 import NotFound from "./pages/NotFound";
-import GameWatcher from "@/components/GameWatcher.ts";
+import GameWatcher from "@/components/GameWatcher.tsx";
 
 const queryClient = new QueryClient();
 
