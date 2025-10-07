@@ -8,8 +8,10 @@ interface GameContextType {
     currentCity: string | null;
     timeRemaining: number;
     isTimerRunning: boolean;
-    missionFailed: boolean;              // ⬅️ nouveau
-    setMissionFailed: (value: boolean) => void; // ⬅️ nouveau
+    missionFailed: boolean;
+    roomPlayers: RoomPlayer[];
+    currentUserId: string;
+    setMissionFailed: (value: boolean) => void;
     setPlayerRole: (role: 'agent' | 'operator') => void;
     setSessionId: (id: string) => void;
     completeCity: (city: string) => void;
@@ -17,8 +19,8 @@ interface GameContextType {
     startTimer: () => void;
     stopTimer: () => void;
     resetTimer: () => void;
+    updateRoomPlayers: (players: RoomPlayer[]) => void;
 }
-
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -32,7 +34,7 @@ interface GameProviderProps {
     children: ReactNode;
 }
 
-const INITIAL_TIME = 15; // 30 minutes en secondes
+const INITIAL_TIME = 15; // secondes pour simplifier
 
 export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const [playerRole, setPlayerRole] = useState<'agent' | 'operator' | null>(null);
@@ -42,7 +44,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const [timeRemaining, setTimeRemaining] = useState(INITIAL_TIME);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [missionFailed, setMissionFailed] = useState(false);
-
+    const [currentUserId] = useState(mockRoomApi.getCurrentUserId());
+    const [roomPlayers, setRoomPlayers] = useState<RoomPlayer[]>([]);
 
     useEffect(() => {
         if (!isTimerRunning) return;
@@ -67,6 +70,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         }
     };
 
+    const updateRoomPlayers = (players: RoomPlayer[]) => {
+        setRoomPlayers(players);
+    };
+
     const startTimer = () => setIsTimerRunning(true);
     const stopTimer = () => setIsTimerRunning(false);
     const resetTimer = () => {
@@ -83,6 +90,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 currentCity,
                 timeRemaining,
                 isTimerRunning,
+                currentUserId,
+                missionFailed,
+                setMissionFailed,
                 setPlayerRole,
                 setSessionId,
                 completeCity,
@@ -90,8 +100,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 startTimer,
                 stopTimer,
                 resetTimer,
-                missionFailed,
-                setMissionFailed,
+                updateRoomPlayers,
+                roomPlayers,
             }}
         >
             {children}
