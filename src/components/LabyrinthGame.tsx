@@ -13,7 +13,6 @@ export const LabyrinthGame = ({ onComplete }: LabyrinthGameProps) => {
     const [player, setPlayer] = useState(start);
     const [isStarted, setIsStarted] = useState(false);
 
-    // Optionnel : mur (exemple)
     const walls = [
         { x: 1, y: 1 },
         { x: 1, y: 3 },

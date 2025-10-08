@@ -12,16 +12,15 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import {LabyrinthGame} from "@/components/LabyrinthGame.tsx";
+import SevenDifferences from "@/components/SevenDifferences.tsx";
 
 const Paris = () => {
   const navigate = useNavigate();
   const { completeCity, playerRole } = useGame();
 
-  // ✅ Index de la mission active
   const [currentMission, setCurrentMission] = useState(1);
   const [showModal, setShowModal] = useState(false);
 
-  // ✅ État pour chaque mission
   const [binaryInput, setBinaryInput] = useState('');
   const [differencesFound, setDifferencesFound] = useState(0);
 
@@ -41,17 +40,6 @@ const Paris = () => {
   const completeLabyrinth = () => {
     toast.success('✓ Labyrinthe résolu !');
     setCurrentMission(3); // passe à la mission 3
-  };
-
-  const findDifference = () => {
-    if (differencesFound < totalDifferences) {
-      const newCount = differencesFound + 1;
-      setDifferencesFound(newCount);
-      if (newCount === totalDifferences) {
-        toast.success('✓ Toutes les différences trouvées !');
-        setShowModal(true); // dernière mission complétée → show modal
-      }
-    }
   };
 
   const handleContinue = () => {
@@ -177,46 +165,40 @@ const Paris = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-xl font-bold mb-1">
-                        <Circle className="inline w-5 h-5 mr-2"/>
-                        Énigme 3: Les 7 Différences
+                        <Circle className="inline w-5 h-5 mr-2" />
+                        Énigme 3 : Les 7 Différences
                       </h3>
-                      <Badge variant="secondary">Difficulté: Moyenne</Badge>
+                      <Badge variant="secondary">Difficulté : Difficile</Badge>
                     </div>
                   </div>
 
                   <div className="bg-muted/50 p-4 rounded-lg mb-4">
-                    {playerRole === 'operator' ? (
+                    {playerRole === "operator" ? (
+                        // VUE OPÉRATEUR
                         <div>
-                          <p className="font-semibold mb-2">📡 Opérateur:</p>
-                          <p className="mb-2">Vous avez l'original. Guidez l'agent vers les différences:</p>
-                          <p className="text-sm">Coin haut gauche, centre, bas droite, etc.</p>
+                          <p className="font-semibold mb-2">📡 Opérateur :</p>
+                          <p className="mb-2">
+                            Vous avez l'image originale. Guidez l'agent vers les différences.
+                          </p>
+                          <div className="bg-card p-4 rounded border border-border text-center">
+                            <img
+                                src="../../public/ARCHE_NOE.JPG"
+                                alt="Original"
+                                className="rounded-lg mx-auto max-w-full"
+                            />
+                          </div>
                         </div>
                     ) : (
-                        <div>
-                          <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
-                          <p className="mb-3">Trouvez les 7 différences avec l'aide de l'opérateur</p>
-                          <div className="bg-card p-6 rounded border border-border mb-3 text-center">
-                            <p className="text-6xl mb-3">🖼️</p>
-                            <p className="text-sm text-muted-foreground">Cliquez pour trouver une différence</p>
-                          </div>
-                          <div className="mb-3">
-                            <Progress value={(differencesFound / totalDifferences) * 100} className="h-3" />
-                            <p className="text-sm text-center mt-2">
-                              {differencesFound}/{totalDifferences} différences trouvées
-                            </p>
-                          </div>
-                          <Button onClick={findDifference} className="w-full">
-                            Différence trouvée !
-                          </Button>
-                        </div>
+                        // VUE AGENT
+                        <SevenDifferences onComplete={() => setShowModal(true)} />
                     )}
                   </div>
                 </Card>
             )}
+
           </div>
         </main>
-
-        <ChatBox />
+        <ChatBox/>
         <ModalEndGame open={showModal} cityName="Paris" onContinue={handleContinue} />
       </div>
   );
