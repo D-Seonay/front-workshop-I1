@@ -25,7 +25,7 @@ const NewYork = () => {
   const [artPlaced, setArtPlaced] = useState(0);
 
   const correctCommand = "edit security.config";
-  const correctShapeCode = "532194";
+  const correctShapeCode = "336";
   const totalArtworks = 6;
 
   const checkCommand = () => {
@@ -149,9 +149,9 @@ const NewYork = () => {
                         ) : (
                             <Circle className="inline w-5 h-5 mr-2" />
                         )}
-                        Énigme 2: Compter les Formes
+                        Énigme 2: Trouver le Code
                       </h3>
-                      <Badge variant="secondary">Difficulté: Difficile</Badge>
+                      <Badge variant="secondary">Difficulté: Moyenne</Badge>
                     </div>
 
                     {currentStep === 2 && (
@@ -159,32 +159,40 @@ const NewYork = () => {
                           {playerRole === "operator" ? (
                               <>
                                 <p className="font-semibold mb-2">📡 Opérateur:</p>
-                                <ul className="text-sm space-y-1 mb-3">
-                                  <li>• Carrés → 5</li>
-                                  <li>• Triangles → 3</li>
-                                  <li>• Cercles → 2</li>
-                                  <li>• Hexagones → 1</li>
-                                  <li>• Étoiles → 9</li>
-                                  <li>• Losanges → 4</li>
-                                </ul>
-                                <p className="text-sm text-muted-foreground">
-                                  Code: 532194
-                                </p>
+                                <div className="flex justify-center items-center gap-6">
+                                  {/* Rond */}
+                                  <div className="w-12 h-12 bg-primary rounded-full"/>
+
+                                  {/* Triangle */}
+                                  <div
+                                      className="w-0 h-0 border-l-[24px] border-r-[24px] border-b-[40px] border-l-transparent border-r-transparent border-b-primary"
+                                  />
+
+                                  {/* Carré */}
+                                  <div className="w-12 h-12 bg-primary rounded-sm"/>
+                                </div>
+
                               </>
                           ) : (
                               <>
                                 <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
-                                <p className="mb-3">
-                                  Comptez chaque type de forme et créez le code à 6
-                                  chiffres:
-                                </p>
-                                <div className="grid grid-cols-3 gap-2 mb-4 text-4xl text-center">
-                                  <div>⬜</div>
-                                  <div>🔺</div>
-                                  <div>⚪</div>
-                                  <div>⬡</div>
-                                  <div>⭐</div>
-                                  <div>🔶</div>
+                                <p className="mb-3">Trouvez le code à 6 chiffres :</p>
+                                <div className="flex justify-center items-center gap-4">
+                                <img
+                                      src="../../public/AshantiStool.png"
+                                      alt="Ashanti Stool"
+                                      className="rounded-lg w-64 h-auto object-contain"
+                                  />
+                                  <img
+                                      src="../../public/ReggioSchool.png"
+                                      alt="Reggio School"
+                                      className="rounded-lg w-64 h-auto object-contain"
+                                  />
+                                  <img
+                                      src="../../public/Filaments.png"
+                                      alt="Filaments"
+                                      className="rounded-lg w-64 h-auto object-contain"
+                                  />
                                 </div>
                                 <Input
                                     type="text"
