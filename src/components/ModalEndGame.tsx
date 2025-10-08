@@ -29,6 +29,10 @@ export const ModalEndGame = ({ open, cityName, code, onContinue }: ModalEndGameP
           <DialogTitle className="text-center text-2xl">Mission Accomplie !</DialogTitle>
           <DialogDescription className="text-center space-y-4">
             <p>Vous avez restauré le musée de <span className="font-bold text-primary">{cityName}</span> !</p>
+            <div className="bg-muted/50 p-4 rounded-lg my-4">
+              <p className="text-xs text-muted-foreground mb-2">Code d'accès restauré :</p>
+              <p className="text-3xl font-bold font-mono text-primary tracking-wider">{code}</p>
+            </div>
             <p className="text-sm">
               L'art a été sauvé grâce à votre collaboration exceptionnelle.
             </p>
