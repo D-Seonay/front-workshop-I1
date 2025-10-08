@@ -26,7 +26,7 @@ const Paris = () => {
 
   const correctBinaryAnswer = '11'; // 1011 en binaire = 11 décimal
   const totalDifferences = 7;
-
+  // p
   // --- Fonctions de résolution ---
   const checkBinary = () => {
     if (binaryInput === correctBinaryAnswer) {
