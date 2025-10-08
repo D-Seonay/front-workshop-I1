@@ -211,7 +211,7 @@ const Paris = () => {
         </main>
 
         <ChatBox />
-        <ModalEndGame open={showModal} cityName="Paris" code="LISA" onContinue={handleContinue} />
+        <ModalEndGame open={showModal} cityName="Paris" onContinue={handleContinue} />
       </div>
   );
 };
