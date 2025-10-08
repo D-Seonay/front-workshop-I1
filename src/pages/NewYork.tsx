@@ -181,25 +181,25 @@ const NewYork = () => {
                                 <img
                                       src="../../public/AshantiStool.png"
                                       alt="Ashanti Stool"
-                                      className="rounded-lg w-64 h-auto object-contain"
+                                      className="rounded-lg w-60 h-auto object-contain"
                                   />
                                   <img
                                       src="../../public/ReggioSchool.png"
                                       alt="Reggio School"
-                                      className="rounded-lg w-64 h-auto object-contain"
+                                      className="rounded-lg w-60 h-auto object-contain"
                                   />
                                   <img
                                       src="../../public/Filaments.png"
                                       alt="Filaments"
-                                      className="rounded-lg w-64 h-auto object-contain"
+                                      className="rounded-lg w-60 h-auto object-contain"
                                   />
                                 </div>
                                 <Input
                                     type="text"
-                                    placeholder="Code à 6 chiffres"
+                                    placeholder="Code à 3 chiffres"
                                     value={shapeCode}
                                     onChange={(e) => setShapeCode(e.target.value)}
-                                    maxLength={6}
+                                    maxLength={3}
                                     className="mb-2"
                                 />
                                 <Button onClick={checkShapeCode} className="w-full">
