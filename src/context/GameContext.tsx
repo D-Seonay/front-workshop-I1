@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { mockRoomApi, RoomPlayer } from '@/services/mockRoomApi';
+import { roomApi, RoomPlayer } from '@/services/roomApi';
 
 interface GameContextType {
     playerRole: 'agent' | 'operator' | null;
@@ -44,7 +44,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const [timeRemaining, setTimeRemaining] = useState(INITIAL_TIME);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [missionFailed, setMissionFailed] = useState(false);
-    const [currentUserId] = useState(mockRoomApi.getCurrentUserId());
+    const [currentUserId] = useState(roomApi.getCurrentUserId());
     const [roomPlayers, setRoomPlayers] = useState<RoomPlayer[]>([]);
 
     useEffect(() => {

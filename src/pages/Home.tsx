@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Landmark, Plus, LogIn, Globe } from 'lucide-react';
-import { mockRoomApi } from '@/services/mockRoomApi';
+import { roomApi } from '@/services/roomApi';
 import { useToast } from '@/hooks/use-toast';
 
 const Home = () => {
@@ -19,7 +19,7 @@ const Home = () => {
   const createSession = async () => {
     setIsCreating(true);
     try {
-      const { room } = await mockRoomApi.createRoom();
+      const { room } = await roomApi.createRoom();
       setSessionId(room.id);
       navigate('/lobby');
     } catch (error) {
@@ -38,7 +38,7 @@ const Home = () => {
     
     setIsJoining(true);
     try {
-      const result = await mockRoomApi.joinRoom(joinCode.toUpperCase());
+      const result = await roomApi.joinRoom(joinCode.toUpperCase());
       if (result) {
         setSessionId(result.room.id);
         navigate('/lobby');

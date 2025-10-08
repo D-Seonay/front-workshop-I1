@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Copy, Check, Users, ArrowRight, User, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
-import { mockRoomApi } from '@/services/mockRoomApi';
+import { roomApi } from '@/services/roomApi';
 
 const Lobby = () => {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const Lobby = () => {
     }
 
     const loadRoomState = async () => {
-      const state = await mockRoomApi.getRoomState(sessionId);
+      const state = await roomApi.getRoomState(sessionId);
       if (!state) return;
       updateRoomPlayers(state.players);
       const currentPlayer = state.players.find(p => p.userId === currentUserId);
@@ -59,7 +59,7 @@ const Lobby = () => {
       return;
     }
 
-    const success = await mockRoomApi.updatePlayerRole(sessionId, role);
+    const success = await roomApi.updatePlayerRole(sessionId, role);
     if (success) {
       setPlayerRole(role);
       toast.success(`Rôle sélectionné : ${role === 'agent' ? 'Agent' : 'Opérateur'}`);
@@ -70,7 +70,7 @@ const Lobby = () => {
     if (!sessionId || !playerRole) return;
 
     const newReadyState = !isReady;
-    const success = await mockRoomApi.setPlayerReady(sessionId, newReadyState);
+    const success = await roomApi.setPlayerReady(sessionId, newReadyState);
     if (success) {
       setIsReady(newReadyState);
       toast.success(newReadyState ? 'Vous êtes prêt !' : 'Vous n\'êtes plus prêt');
@@ -80,7 +80,7 @@ const Lobby = () => {
   const startGame = async () => {
     if (!sessionId) return;
 
-    const success = await mockRoomApi.startGame(sessionId);
+    const success = await roomApi.startGame(sessionId);
     if (success) {
       startTimer();
       navigate('/cities');
