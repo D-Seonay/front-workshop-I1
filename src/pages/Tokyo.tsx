@@ -27,11 +27,10 @@ const Tokyo = () => {
   // Énigme 2 : Kanjis
   const [kanjiWord, setKanjiWord] = useState("");
   const listOfKanji = ["Rêve", "Coeur", "Voie", "Âme"];
-  let i = 0;
 
   // Énigme 3 : Séquence de couleurs
   const [sequence, setSequence] = useState<string[]>([]);
-  const correctSequence = ["red", "green", "yellow", "blue"];
+  const correctSequence = ["red", "blue", "yellow", "green"];
 
 
   const checkVoltCode = () => {
@@ -276,9 +275,9 @@ const Tokyo = () => {
                                 <p className="mb-2">Séquence à reproduire:</p>
                                 <div className="flex gap-2 justify-center">
                                   <div className="w-12 h-12 bg-red-500 rounded-full"></div>
-                                  <div className="w-12 h-12 bg-green-500 rounded-full"></div>
-                                  <div className="w-12 h-12 bg-yellow-500 rounded-full"></div>
                                   <div className="w-12 h-12 bg-blue-500 rounded-full"></div>
+                                  <div className="w-12 h-12 bg-yellow-500 rounded-full"></div>
+                                  <div className="w-12 h-12 bg-green-500 rounded-full"></div>
                                 </div>
                               </>
                           ) : (
