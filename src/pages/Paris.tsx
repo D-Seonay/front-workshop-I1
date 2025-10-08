@@ -182,7 +182,7 @@ const Paris = () => {
                           </p>
                           <div className="bg-card p-4 rounded border border-border text-center">
                             <img
-                                src="../../public/ARCHE_NOE.JPG"
+                                src="../../public/ARCHE_NOE.png"
                                 alt="Original"
                                 className="rounded-lg mx-auto max-w-full"
                             />
