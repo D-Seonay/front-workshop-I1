@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Circle, Terminal } from "lucide-react";
 import { toast } from "sonner";
+import {TerminalGame} from "@/components/TerminalGame.tsx";
 
 const NewYork = () => {
   const navigate = useNavigate();
@@ -28,12 +29,8 @@ const NewYork = () => {
   const totalArtworks = 6;
 
   const checkCommand = () => {
-    if (commandInput.toLowerCase() === correctCommand) {
-      toast.success("✓ Fichier de sécurité corrigé !");
-      setCurrentStep(2);
-    } else {
-      toast.error("Commande incorrecte");
-    }
+    toast.success("✓ Fichier de sécurité corrigé !");
+    setCurrentStep(2);
   };
 
   const checkShapeCode = () => {
@@ -115,41 +112,19 @@ const NewYork = () => {
                                 <p className="font-semibold mb-2">📡 Opérateur:</p>
                                 <div className="bg-card border border-border rounded p-3 font-mono text-sm mb-3">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <Terminal className="w-4 h-4 text-secondary" />
-                                    <span className="text-secondary">
-                              system@moma:~$
-                            </span>
+                                    <span className="text-secondary">system@moma:~$</span>
                                   </div>
-                                  <p className="text-muted-foreground mb-1">
-                                    # Fichiers disponibles:
-                                  </p>
-                                  <p>- security.config (ERREUR)</p>
-                                  <p>- database.db</p>
-                                  <p>- artwork_list.json</p>
-                                  <p className="mt-2 text-muted-foreground">
-                                    # Tapez la commande pour corriger le fichier
-                                  </p>
+                                  <TerminalGame onComplete={checkCommand} />
                                 </div>
-                                <Input
-                                    placeholder="Entrez votre commande..."
-                                    value={commandInput}
-                                    onChange={(e) => setCommandInput(e.target.value)}
-                                    className="font-mono"
-                                />
-                                <Button onClick={checkCommand} className="w-full mt-2">
-                                  Exécuter
-                                </Button>
                               </>
                           ) : (
                               <>
                                 <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
-                                <p className="mb-3">Fichier à corriger:</p>
+                                <p className="mb-3">Fichier à supprimer:</p>
                                 <div className="bg-card p-4 rounded border border-destructive">
-                                  <p className="text-2xl font-bold text-destructive">
-                                    security.config
-                                  </p>
+                                  <p className="text-2xl font-bold text-destructive">alarm.sh</p>
                                   <p className="text-sm text-muted-foreground mt-2">
-                                    Statut: ERREUR
+                                    Statut: SECURITY
                                   </p>
                                 </div>
                               </>
@@ -158,6 +133,7 @@ const NewYork = () => {
                     )}
                   </Card>
               )}
+
 
               {/* Énigme 2 */}
               {currentStep >= 2 && (
