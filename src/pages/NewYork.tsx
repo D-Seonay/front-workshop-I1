@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Circle, Terminal } from "lucide-react";
 import { toast } from "sonner";
 import {TerminalGame} from "@/components/TerminalGame.tsx";
+import {SingleSlotPuzzle} from "@/components/SingleSlotPuzzle.tsx";
 
 const NewYork = () => {
   const navigate = useNavigate();
@@ -41,23 +42,6 @@ const NewYork = () => {
       toast.error("Code incorrect");
     }
   };
-
-  const placeArtwork = () => {
-    if (artPlaced < totalArtworks) {
-      const newCount = artPlaced + 1;
-      setArtPlaced(newCount);
-      if (newCount === totalArtworks) {
-        toast.success("✓ Tous les tableaux replacés !");
-        setCurrentStep(4); // toutes les énigmes finies
-      }
-    }
-  };
-
-  const allComplete = currentStep > 3;
-
-  if (allComplete && !showModal) {
-    setShowModal(true);
-  }
 
   const handleContinue = () => {
     completeCity("newyork");
@@ -176,7 +160,7 @@ const NewYork = () => {
                           ) : (
                               <>
                                 <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
-                                <p className="mb-3">Trouvez le code à 6 chiffres :</p>
+                                <p className="mb-3">Trouvez le code à 3 chiffres :</p>
                                 <div className="flex justify-center items-center gap-4">
                                 <img
                                       src="../../public/AshantiStool.png"
@@ -226,7 +210,7 @@ const NewYork = () => {
                         ) : (
                             <Circle className="inline w-5 h-5 mr-2" />
                         )}
-                        Énigme 3: Remettre les Tableaux
+                        Énigme 3: Replacer le tableau
                       </h3>
                       <Badge variant="secondary">Difficulté: Moyenne</Badge>
                     </div>
@@ -249,31 +233,9 @@ const NewYork = () => {
                               <>
                                 <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
                                 <p className="mb-3">
-                                  Replacez les œuvres dans le bon ordre avec l'aide de
-                                  l'opérateur:
+                                  Replacez l'œuvres à son emplacement correct:
                                 </p>
-                                <div className="grid grid-cols-3 gap-2 mb-3">
-                                  {[...Array(6)].map((_, i) => (
-                                      <div
-                                          key={i}
-                                          className={`p-4 rounded border text-center ${
-                                              i < artPlaced
-                                                  ? "border-primary bg-primary/10"
-                                                  : "border-border"
-                                          }`}
-                                      >
-                                        <p className="text-3xl mb-1">🖼️</p>
-                                        <p className="text-xs">Position {i + 1}</p>
-                                      </div>
-                                  ))}
-                                </div>
-                                <Progress
-                                    value={(artPlaced / totalArtworks) * 100}
-                                    className="h-3 mb-3"
-                                />
-                                <Button onClick={placeArtwork} className="w-full">
-                                  Placer l'œuvre ({artPlaced}/{totalArtworks})
-                                </Button>
+                                <SingleSlotPuzzle onComplete={() => setShowModal(true)}/>
                               </>
                           )}
                         </div>
