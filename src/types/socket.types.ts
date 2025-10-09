@@ -5,21 +5,22 @@
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 export type PlayerRole = 'agent' | 'operator' | null;
 
-export interface Player {
+export interface User {
   id: string;
-  name: string;
-  connected: boolean;
+  username: string;
+  roomId: string | null;
   isReady: boolean;
-  joinedAt: number;
+  role: PlayerRole;
+  connectedAt: Date;
 }
 
 export interface Room {
-  roomId: string;
-  players: Player[];
-  status: 'lobby' | 'playing' | 'finished';
-  createdAt: number;
-  timer?: number;
-  interval?: NodeJS.Timeout;
+  id: string;
+  name: string;
+  status: RoomStatus;
+  createdAt: Date;
+  users: Map<string, User>;
+  maxPlayers: number;
 }
 
 export interface ChatMessage {
@@ -32,22 +33,29 @@ export interface ChatMessage {
 }
 
 export interface ServerToClientEvents {
-  'room_created': (data: { code: string; room: Room }) => void;
-  'room_joined': (data: { room: Room }) => void;
-  'room_update': (data: { room: Room }) => void;
-  'player_joined': (data: { player: Player }) => void;
-  'player_left': (data: { player: Player }) => void;
-  'game_started': (data: { roomId: string }) => void;
-  'message_received': (message: { id: string; name: string; message: string; timestamp: string }) => void;
-  'error': (error: { message: string }) => void;
+  'chat:message': (message: ChatMessage) => void;
+  'chat:history': (messages: ChatMessage[]) => void;
+  'room:created': (room: { id: string; name: string }) => void;
+  'room:joined': (data: { roomId: string; users: User[] }) => void;
+  'room:user_joined': (user: User) => void;
+  'room:user_left': (data: { userId: string; username: string }) => void;
+  'room:status_changed': (status: RoomStatus) => void;
+  'room:users': (users: User[]) => void;
+  'room:update': (data: { users: User[]; status: RoomStatus }) => void;
+  'player:ready': (data: { userId: string; isReady: boolean }) => void;
+  'player:role': (data: { userId: string; role: PlayerRole }) => void;
+  'error': (error: { message: string; code?: string }) => void;
 }
 
 export interface ClientToServerEvents {
-  'create_room': (data: { name: string }) => void;
-  'join_room': (data: { code: string; name: string }) => void;
-  'toggle_ready': (data: { code: string }) => void;
-  'send_message': (data: { code: string; name: string; message: string }) => void;
-  'leave_room': (data: { code: string }) => void;
+  'user:register': (data: { username: string }) => void;
+  'room:create': (data: { name: string }) => void;
+  'room:join': (roomId: string) => void;
+  'room:leave': () => void;
+  'room:start': () => void;
+  'chat:send': (content: string) => void;
+  'player:set_ready': (isReady: boolean) => void;
+  'player:set_role': (role: PlayerRole) => void;
 }
 
 export interface InterServerEvents {

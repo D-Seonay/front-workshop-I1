@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "@/context/GameContext";
+import { useLobby } from "@/context/LobbyProvider";
 import { Navbar } from "@/components/Navbar";
 import { ChatBox } from "@/components/ChatBox";
 import { ModalEndGame } from "@/components/ModalEndGame";
@@ -15,7 +16,10 @@ import {OscilloscopeGame} from "@/components/OscilloscopeGame.tsx";
 
 const Tokyo = () => {
   const navigate = useNavigate();
-  const { completeCity, playerRole } = useGame();
+  const { completeCity } = useGame();
+  const { room, currentPlayerId } = useLobby();
+
+  const currentPlayer = room?.players.find(p => p.id === currentPlayerId);
 
   const [voltCode, setVoltCode] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
@@ -148,7 +152,7 @@ const Tokyo = () => {
 
                     {currentStep === 1 && (
                         <div className="bg-muted/50 p-4 rounded-lg mb-4">
-                          {playerRole === "operator" ? (
+                          {currentPlayer?.role === "operator" ? (
                               <>
                                 <p className="font-semibold mb-2">📡 Opérateur:</p>
                                 <p className="text-sm text-muted-foreground mt-2 text-center">
@@ -198,7 +202,7 @@ const Tokyo = () => {
 
                     {currentStep === 2 && (
                         <div className="bg-muted/50 p-4 rounded-lg mb-4">
-                          {playerRole === "operator" ? (
+                          {currentPlayer?.role === "operator" ? (
                               <>
                                 <p className="font-semibold mb-2">📡 Opérateur :</p>
 
@@ -269,7 +273,7 @@ const Tokyo = () => {
 
                     {currentStep === 3 && (
                         <div className="bg-muted/50 p-4 rounded-lg mb-4">
-                          {playerRole === "operator" ? (
+                          {currentPlayer?.role === "operator" ? (
                               <>
                                 <p className="font-semibold mb-2">📡 Opérateur:</p>
                                 <p className="mb-2">Séquence à reproduire:</p>

@@ -10,7 +10,7 @@ class Storage {
   private messages: Map<string, ChatMessage[]> = new Map();
 
   // ===== ROOMS =====
-  
+
   createRoom(id: string, name: string): Room {
     const room: Room = {
       id,
@@ -51,7 +51,7 @@ class Storage {
   }
 
   // ===== USERS =====
-  
+
   createUser(id: string, username: string): User {
     const user: User = {
       id,
@@ -81,7 +81,7 @@ class Storage {
   addUserToRoom(userId: string, roomId: string): boolean {
     const user = this.users.get(userId);
     const room = this.rooms.get(roomId);
-    
+
     if (!user || !room) return false;
     if (room.users.size >= room.maxPlayers) return false;
 
@@ -99,7 +99,7 @@ class Storage {
     if (room) {
       room.users.delete(userId);
       console.log(`➖ User ${user.username} quitte la room ${user.roomId}`);
-      
+
       // Supprimer la room si elle est vide
       if (room.users.size === 0) {
         this.deleteRoom(user.roomId);
@@ -134,19 +134,19 @@ class Storage {
   }
 
   // ===== MESSAGES =====
-  
+
   addMessage(message: ChatMessage): void {
     if (!this.messages.has(message.roomId)) {
       this.messages.set(message.roomId, []);
     }
     const roomMessages = this.messages.get(message.roomId)!;
     roomMessages.push(message);
-    
+
     // Garder seulement les 100 derniers messages
     if (roomMessages.length > 100) {
       roomMessages.shift();
     }
-    
+
     console.log(`💬 Message de ${message.username} dans ${message.roomId}`);
   }
 
@@ -156,7 +156,7 @@ class Storage {
   }
 
   // ===== STATS =====
-  
+
   getStats() {
     return {
       rooms: this.rooms.size,

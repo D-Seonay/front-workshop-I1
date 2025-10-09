@@ -6,8 +6,10 @@ import { io, Socket } from 'socket.io-client';
 import type { 
   ServerToClientEvents, 
   ClientToServerEvents, 
-  Room,
-  Player
+  ChatMessage, 
+  User,
+  RoomStatus,
+  PlayerRole
 } from '@/types/socket.types';
 
 type SocketClient = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -77,79 +79,116 @@ class SocketService {
     return this.socket;
   }
 
+  // ===== USER =====
+
+  registerUser(username: string) {
+    if (!this.socket) throw new Error('Socket non connecté');
+    console.log('👤 Enregistrement:', username);
+    this.socket.emit('user:register', { username });
+  }
+
   // ===== ROOMS =====
 
   createRoom(name: string) {
     if (!this.socket) throw new Error('Socket non connecté');
     console.log('🏠 Création room:', name);
-    this.socket.emit('create_room', { name });
+    this.socket.emit('room:create', { name });
   }
 
-  joinRoom(code: string, name: string) {
+  joinRoom(roomId: string) {
     if (!this.socket) throw new Error('Socket non connecté');
-    console.log('🚪 Rejoindre room:', code);
-    this.socket.emit('join_room', { code, name });
+    console.log('🚪 Rejoindre room:', roomId);
+    this.socket.emit('room:join', roomId);
   }
 
-  leaveRoom(code: string) {
+  leaveRoom() {
     if (!this.socket) throw new Error('Socket non connecté');
     console.log('👋 Quitter room');
-    this.socket.emit('leave_room', { code });
+    this.socket.emit('room:leave');
   }
 
-  toggleReady(code: string) {
+  startGame() {
     if (!this.socket) throw new Error('Socket non connecté');
-    console.log('✅ Toggle ready');
-    this.socket.emit('toggle_ready', { code });
+    console.log('🎮 Démarrer partie');
+    this.socket.emit('room:start');
   }
 
   // ===== CHAT =====
 
-  sendMessage(code: string, name: string, message: string) {
+  sendMessage(content: string) {
     if (!this.socket) throw new Error('Socket non connecté');
-    this.socket.emit('send_message', { code, name, message });
+    this.socket.emit('chat:send', content);
   }
 
-  onMessageReceived(callback: (message: { id: string; name: string; message: string; timestamp: string }) => void) {
+  onChatMessage(callback: (message: ChatMessage) => void) {
     if (!this.socket) throw new Error('Socket non connecté');
-    this.socket.on('message_received', callback);
+    this.socket.on('chat:message', callback);
+  }
+
+  onChatHistory(callback: (messages: ChatMessage[]) => void) {
+    if (!this.socket) throw new Error('Socket non connecté');
+    this.socket.on('chat:history', callback);
+  }
+
+  // ===== PLAYER =====
+
+  setReady(isReady: boolean) {
+    if (!this.socket) throw new Error('Socket non connecté');
+    console.log(`${isReady ? '✅' : '❌'} Set ready:`, isReady);
+    this.socket.emit('player:set_ready', isReady);
+  }
+
+  setRole(role: PlayerRole) {
+    if (!this.socket) throw new Error('Socket non connecté');
+    console.log('🎭 Set role:', role);
+    this.socket.emit('player:set_role', role);
+  }
+
+  onPlayerReady(callback: (data: { userId: string; isReady: boolean }) => void) {
+    if (!this.socket) throw new Error('Socket non connecté');
+    this.socket.on('player:ready', callback);
+  }
+
+  onPlayerRole(callback: (data: { userId: string; role: PlayerRole }) => void) {
+    if (!this.socket) throw new Error('Socket non connecté');
+    this.socket.on('player:role', callback);
   }
 
   // ===== ROOM EVENTS =====
 
-  onRoomCreated(callback: (data: { code: string; room: Room }) => void) {
+  onRoomCreated(callback: (data: { id: string; name: string }) => void) {
     if (!this.socket) throw new Error('Socket non connecté');
-    this.socket.on('room_created', callback);
+    this.socket.on('room:created', callback);
   }
 
-  onRoomJoined(callback: (data: { room: Room }) => void) {
+  onRoomJoined(callback: (data: { roomId: string; users: User[] }) => void) {
     if (!this.socket) throw new Error('Socket non connecté');
-    this.socket.on('room_joined', callback);
+    this.socket.on('room:joined', callback);
   }
 
-  onRoomUpdate(callback: (data: { room: Room }) => void) {
+  onRoomUserJoined(callback: (user: User) => void) {
     if (!this.socket) throw new Error('Socket non connecté');
-    this.socket.on('room_update', callback);
+    this.socket.on('room:user_joined', callback);
   }
 
-  onPlayerJoined(callback: (data: { player: Player }) => void) {
+  onRoomUserLeft(callback: (data: { userId: string; username: string }) => void) {
     if (!this.socket) throw new Error('Socket non connecté');
-    this.socket.on('player_joined', callback);
+    this.socket.on('room:user_left', callback);
   }
 
-  onPlayerLeft(callback: (data: { player: Player }) => void) {
+  onRoomStatusChanged(callback: (status: RoomStatus) => void) {
     if (!this.socket) throw new Error('Socket non connecté');
-    this.socket.on('player_left', callback);
+    this.socket.on('room:status_changed', callback);
   }
 
-  onGameStarted(callback: (data: { roomId: string }) => void) {
+  onRoomUpdate(callback: (data: { users: User[]; status: RoomStatus }) => void) {
     if (!this.socket) throw new Error('Socket non connecté');
-    this.socket.on('game_started', callback);
+    this.socket.on('room:update', callback);
   }
 
   // ===== ERROR =====
 
-  onError(callback: (error: { message: string }) => void) {
+  onError(callback: (error: { message: string; code?: string }) => void) {
     if (!this.socket) throw new Error('Socket non connecté');
     this.socket.on('error', callback);
   }
@@ -162,8 +201,12 @@ class SocketService {
     }
   }
 
-  offMessageReceived() {
-    this.socket?.off('message_received');
+  offChatMessage() {
+    this.socket?.off('chat:message');
+  }
+
+  offChatHistory() {
+    this.socket?.off('chat:history');
   }
 
   offError() {

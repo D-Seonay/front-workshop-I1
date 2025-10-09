@@ -1,25 +1,19 @@
 import { useNavigate } from 'react-router-dom';
-import { useGame } from '@/context/GameContext';
+import { useLobby } from '@/context/LobbyProvider';
 import { Timer } from './Timer';
 import { Button } from './ui/button';
-import { LogOut, Landmark, Shuffle } from 'lucide-react';
-import { toast } from 'sonner';
+import { LogOut, Landmark } from 'lucide-react';
 
 export const Navbar = () => {
   const navigate = useNavigate();
-  const { playerRole, setPlayerRole } = useGame();
+  const { room, currentPlayerId } = useLobby();
+
+  const currentPlayer = room?.players.find(p => p.id === currentPlayerId);
 
   const handleQuit = () => {
     if (confirm('Êtes-vous sûr de vouloir quitter la mission ?')) {
       navigate('/');
     }
-  };
-
-  // ⚡ Test-only: changer de rôle localement
-  const toggleRole = () => {
-    const newRole = playerRole === 'agent' ? 'operator' : 'agent';
-    setPlayerRole(newRole);
-    toast.info(`Rôle changé : ${newRole === 'agent' ? '🧑‍🎨 Agent' : '👨‍💻 Opérateur'}`);
   };
 
   return (
@@ -35,25 +29,14 @@ export const Navbar = () => {
 
           {/* --- Actions --- */}
           <div className="flex items-center gap-4">
-            {playerRole && (
+            {currentPlayer?.role && (
                 <div className="px-3 py-1 bg-muted rounded-full text-sm">
                   Rôle :{' '}
                   <span className="font-semibold text-accent">
-                {playerRole === 'agent' ? '🧑‍🎨 Agent' : '👨‍💻 Opérateur'}
+                {currentPlayer.role === 'agent' ? '🧑‍🎨 Agent' : '👨‍💻 Opérateur'}
               </span>
                 </div>
             )}
-
-            {/* 🧪 Bouton de test (changer de rôle) */}
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleRole}
-                className="gap-2 hidden sm:flex"
-            >
-              <Shuffle className="w-4 h-4" />
-              Changer de rôle
-            </Button>
 
             <Timer />
 

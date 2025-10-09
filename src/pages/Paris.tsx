@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useGame } from '@/context/GameContext';
-import { Navbar } from '@/components/Navbar';
-import { ChatBox } from '@/components/ChatBox';
-import { ModalEndGame } from '@/components/ModalEndGame';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useGame } from "@/context/GameContext";
+import { useLobby } from "@/context/LobbyProvider";
+import { Navbar } from "@/components/Navbar";
+import { ChatBox } from "@/components/ChatBox";
+import { ModalEndGame } from "@/components/ModalEndGame";
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,10 @@ import SevenDifferences from "@/components/SevenDifferences.tsx";
 
 const Paris = () => {
   const navigate = useNavigate();
-  const { completeCity, playerRole } = useGame();
+  const { completeCity } = useGame();
+  const { room, currentPlayerId } = useLobby();
+
+  const currentPlayer = room?.players.find(p => p.id === currentPlayerId);
 
   const [currentMission, setCurrentMission] = useState(1);
   const [showModal, setShowModal] = useState(false);
@@ -86,7 +90,7 @@ const Paris = () => {
                   </div>
 
                   <div className="bg-muted/50 p-4 rounded-lg mb-4">
-                    {playerRole === 'operator' ? (
+                    {currentPlayer?.role === 'operator' ? (
                         <div>
                           <p className="font-semibold mb-2">📡 Opérateur:</p>
                           <p className="text-lg mb-2">Code binaire à transmettre à l'agent:</p>
@@ -125,7 +129,7 @@ const Paris = () => {
                   </div>
 
                   <div className="bg-muted/50 p-4 rounded-lg mb-4">
-                    {playerRole === 'operator' ? (
+                    {currentPlayer?.role === 'operator' ? (
                         <div className="bg-card p-4 rounded border border-border mb-3">
                           <div className="grid grid-cols-5 gap-1 w-fit mx-auto">
                             {[...Array(25)].map((_, i) => {
@@ -173,7 +177,7 @@ const Paris = () => {
                   </div>
 
                   <div className="bg-muted/50 p-4 rounded-lg mb-4">
-                    {playerRole === "operator" ? (
+                      {currentPlayer?.role === "operator" ? (
                         // VUE OPÉRATEUR
                         <div>
                           <p className="font-semibold mb-2">📡 Opérateur :</p>

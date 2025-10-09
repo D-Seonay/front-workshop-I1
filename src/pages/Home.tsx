@@ -1,95 +1,39 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGame } from '@/context/GameContext';
+import { useLobby } from '@/context/LobbyProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Landmark, Plus, LogIn, Globe } from 'lucide-react';
-import { socketService } from '@/services/socketService';
-import { useToast } from '@/hooks/use-toast';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { setSessionId } = useGame();
+  const { createRoom, joinRoom, connected, room } = useLobby();
+  const [playerName, setPlayerName] = useState('');
   const [joinCode, setJoinCode] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
-  const { toast } = useToast();
+  const [showNameInput, setShowNameInput] = useState<'create' | 'join' | null>(null);
 
-  // Connexion au serveur Socket.IO au montage
   useEffect(() => {
-    const serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
-    socketService.connect(serverUrl);
-
-    return () => {
-      socketService.removeAllListeners();
-    };
-  }, []);
-
-  const createSession = async () => {
-    setIsCreating(true);
-    try {
-      const username = localStorage.getItem('username') || `Player_${Math.random().toString(36).substring(2, 7)}`;
-      localStorage.setItem('username', username);
-
-      // Écouter l'événement room_created
-      socketService.onRoomCreated((data) => {
-        setSessionId(data.code);
-        navigate('/lobby');
-      });
-
-      socketService.onError((error) => {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: error.message,
-        });
-        setIsCreating(false);
-      });
-
-      socketService.createRoom(username);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de créer la session",
-      });
-      setIsCreating(false);
+    if (room?.code) {
+      navigate(`/lobby/${room.code}`);
     }
+  }, [room?.code, navigate]);
+
+  const handleCreateSession = () => {
+    if (!playerName.trim()) {
+      setShowNameInput('create');
+      return;
+    }
+    createRoom(playerName);
   };
 
-  const joinSession = async () => {
-    if (!joinCode.trim()) return;
-    
-    setIsJoining(true);
-    try {
-      const username = localStorage.getItem('username') || `Player_${Math.random().toString(36).substring(2, 7)}`;
-      localStorage.setItem('username', username);
-
-      // Écouter l'événement room_joined
-      socketService.onRoomJoined((data) => {
-        setSessionId(data.room.roomId);
-        navigate('/lobby');
-      });
-
-      socketService.onError((error) => {
-        toast({
-          variant: "destructive",
-          title: "Session introuvable",
-          description: error.message,
-        });
-        setIsJoining(false);
-      });
-
-      socketService.joinRoom(joinCode.toUpperCase(), username);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de rejoindre la session",
-      });
-      setIsJoining(false);
+  const handleJoinSession = () => {
+    if (!playerName.trim()) {
+      setShowNameInput('join');
+      return;
     }
+    if (!joinCode.trim()) return;
+    joinRoom(playerName, joinCode.toUpperCase());
   };
 
   return (
@@ -130,14 +74,34 @@ const Home = () => {
                   Lancez une nouvelle mission et invitez un coéquipier
                 </p>
               </div>
-              <Button 
-                onClick={createSession} 
-                className="w-full mt-auto shadow-glow-gold"
-                size="lg"
-                disabled={isCreating}
-              >
-                {isCreating ? 'Création...' : 'Nouvelle Mission'}
-              </Button>
+              {showNameInput === 'create' ? (
+                <div className="space-y-3 mt-auto">
+                  <Input
+                    placeholder="Votre nom"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleCreateSession()}
+                    className="text-center"
+                  />
+                  <Button 
+                    onClick={handleCreateSession} 
+                    className="w-full shadow-glow-gold"
+                    size="lg"
+                    disabled={!connected || !playerName.trim()}
+                  >
+                    Créer
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  onClick={() => setShowNameInput('create')} 
+                  className="w-full mt-auto shadow-glow-gold"
+                  size="lg"
+                  disabled={!connected}
+                >
+                  {connected ? 'Nouvelle Mission' : 'Connexion...'}
+                </Button>
+              )}
             </div>
           </Card>
 
@@ -153,22 +117,30 @@ const Home = () => {
                 </p>
               </div>
               <div className="space-y-3 mt-auto">
+                {showNameInput === 'join' && (
+                  <Input
+                    placeholder="Votre nom"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    className="text-center"
+                  />
+                )}
                 <Input
-                  placeholder="Code de session (ex: ABC123)"
+                  placeholder="Code (ex: A3K9B)"
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  onKeyPress={(e) => e.key === 'Enter' && joinSession()}
+                  onKeyPress={(e) => e.key === 'Enter' && handleJoinSession()}
                   className="text-center font-mono text-lg"
-                  maxLength={6}
+                  maxLength={5}
                 />
                 <Button 
-                  onClick={joinSession} 
+                  onClick={handleJoinSession} 
                   variant="secondary"
                   className="w-full"
                   size="lg"
-                  disabled={!joinCode.trim() || isJoining}
+                  disabled={!connected || !joinCode.trim() || (showNameInput === 'join' && !playerName.trim())}
                 >
-                  {isJoining ? 'Connexion...' : 'Rejoindre'}
+                  {connected ? 'Rejoindre' : 'Connexion...'}
                 </Button>
               </div>
             </div>

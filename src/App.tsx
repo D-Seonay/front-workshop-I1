@@ -12,32 +12,30 @@ import NewYork from "./pages/NewYork";
 import Tokyo from "./pages/Tokyo";
 import Credits from "./pages/Credits";
 import NotFound from "./pages/NotFound";
-import GameWatcher from "@/components/GameWatcher.tsx";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-    <QueryClientProvider client={queryClient}>
+  <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
       <GameProvider>
-        <BrowserRouter>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <GameWatcher />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/lobby" element={<Lobby />} />
-              <Route path="/cities" element={<CitySelection />} />
-              <Route path="/paris" element={<Paris />} />
-              <Route path="/newyork" element={<NewYork />} />
-              <Route path="/tokyo" element={<Tokyo />} />
-              <Route path="/credits" element={<Credits />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </BrowserRouter>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/lobby/:code" element={<Lobby />} />
+            <Route path="/cities" element={<CitySelection />} />
+            <Route path="/paris" element={<Paris />} />
+            <Route path="/newyork" element={<NewYork />} />
+            <Route path="/tokyo" element={<Tokyo />} />
+            <Route path="/credits" element={<Credits />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
       </GameProvider>
-    </QueryClientProvider>
+    </BrowserRouter>
+  </QueryClientProvider>
 );
 
 export default App;

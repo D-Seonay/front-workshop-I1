@@ -3,173 +3,301 @@
  */
 
 import { Socket } from 'socket.io';
-import type { Room, Player } from '../types/socket.types';
-
-const rooms: Record<string, Room> = {};
+import { v4 as uuidv4 } from 'uuid';
+import { storage } from '../utils/storage';
+import { ChatMessage, PlayerRole } from '../types/socket.types';
 
 export const handleConnection = (socket: Socket) => {
-  console.log(`[connection] Client connected: ${socket.id}`);
+  console.log(`🔌 Nouvelle connexion: ${socket.id}`);
 
-  // ===== CREATE ROOM =====
-  socket.on('create_room', ({ name }: { name: string }) => {
+  // ===== USER REGISTRATION =====
+  socket.on('user:register', ({ username }: { username: string }) => {
     try {
-      const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+      // Créer l'utilisateur
+      const user = storage.createUser(socket.id, username);
+      socket.data.userId = user.id;
+      socket.data.username = username;
 
-      const player: Player = {
-        id: socket.id,
-        name,
-        connected: true,
-        isReady: false,
-        joinedAt: Date.now(),
-      };
+      console.log(`✅ User enregistré: ${username} (${socket.id})`);
+    } catch (error) {
+      console.error('❌ Erreur user:register:', error);
+      socket.emit('error', { message: 'Erreur lors de l\'enregistrement' });
+    }
+  });
 
-      const newRoom: Room = {
-        roomId,
-        players: [player],
-        status: 'lobby',
-        createdAt: Date.now(),
-      };
+  // ===== ROOM CREATION =====
+  socket.on('room:create', ({ name }: { name: string }) => {
+    try {
+      if (!socket.data.username) {
+        socket.emit('error', { message: 'Vous devez vous enregistrer d\'abord', code: 'NOT_REGISTERED' });
+        return;
+      }
 
-      rooms[roomId] = newRoom;
+      // Générer un ID court pour la room
+      const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const room = storage.createRoom(roomId, name);
+
+      // Ajouter l'utilisateur à la room
+      storage.addUserToRoom(socket.id, roomId);
       socket.join(roomId);
 
-      console.log(`[create_room] ${name} created room ${roomId}`);
-      socket.emit('room_created', { code: roomId, room: newRoom });
+      socket.emit('room:created', { id: room.id, name: room.name });
+      socket.emit('room:joined', {
+        roomId: room.id,
+        users: storage.getRoomUsers(roomId)
+      });
+
+      console.log(`🏠 ${socket.data.username} a créé la room ${roomId}`);
     } catch (error) {
-      console.error('❌ Error create_room:', error);
-      socket.emit('error', { message: 'Error creating room' });
+      console.error('❌ Erreur room:create:', error);
+      socket.emit('error', { message: 'Erreur lors de la création de la room' });
     }
   });
 
-  // ===== JOIN ROOM =====
-  socket.on('join_room', ({ code, name }: { code: string; name: string }) => {
+  // ===== ROOM JOIN =====
+  socket.on('room:join', (roomId: string) => {
     try {
-      const room = rooms[code];
+      if (!socket.data.username) {
+        socket.emit('error', { message: 'Vous devez vous enregistrer d\'abord', code: 'NOT_REGISTERED' });
+        return;
+      }
+
+      const room = storage.getRoom(roomId);
       if (!room) {
-        socket.emit('error', { message: 'Room not found' });
+        socket.emit('error', { message: 'Room introuvable', code: 'ROOM_NOT_FOUND' });
         return;
       }
 
-      const alreadyJoined = room.players.find((p) => p.id === socket.id);
-      if (alreadyJoined) {
-        socket.emit('room_joined', { room });
+      if (room.users.size >= room.maxPlayers) {
+        socket.emit('error', { message: 'Room complète', code: 'ROOM_FULL' });
         return;
       }
 
-      const player: Player = {
-        id: socket.id,
-        name,
-        connected: true,
-        isReady: false,
-        joinedAt: Date.now(),
-      };
+      if (room.status !== 'waiting') {
+        socket.emit('error', { message: 'La partie a déjà commencé', code: 'GAME_STARTED' });
+        return;
+      }
 
-      room.players.push(player);
-      socket.join(code);
+      // Ajouter l'utilisateur à la room
+      const success = storage.addUserToRoom(socket.id, roomId);
+      if (!success) {
+        socket.emit('error', { message: 'Impossible de rejoindre la room' });
+        return;
+      }
 
-      console.log(`[join_room] ${name} joined room ${code}`);
+      socket.join(roomId);
 
-      socket.emit('room_joined', { room });
-      socket.to(code).emit('room_update', { room });
-      socket.to(code).emit('player_joined', { player });
+      const user = storage.getUser(socket.id)!;
+      const users = storage.getRoomUsers(roomId);
+
+      // Envoyer l'historique des messages au nouveau joueur
+      const messages = storage.getRoomMessages(roomId);
+      socket.emit('chat:history', messages);
+
+      // Notifier tout le monde
+      socket.emit('room:joined', { roomId, users });
+      socket.to(roomId).emit('room:user_joined', user);
+      socket.to(roomId).emit('room:update', { users, status: room.status });
+
+      console.log(`👋 ${socket.data.username} a rejoint la room ${roomId}`);
     } catch (error) {
-      console.error('❌ Error join_room:', error);
-      socket.emit('error', { message: 'Error joining room' });
+      console.error('❌ Erreur room:join:', error);
+      socket.emit('error', { message: 'Erreur lors de la connexion à la room' });
     }
   });
 
-  // ===== TOGGLE READY =====
-  socket.on('toggle_ready', ({ code }: { code: string }) => {
+  // ===== ROOM LEAVE =====
+  socket.on('room:leave', () => {
+    handleLeaveRoom(socket);
+  });
+
+  // ===== ROOM START =====
+  socket.on('room:start', () => {
     try {
-      const room = rooms[code];
+      const user = storage.getUser(socket.id);
+      if (!user || !user.roomId) {
+        socket.emit('error', { message: 'Vous n\'êtes pas dans une room', code: 'NOT_IN_ROOM' });
+        return;
+      }
+
+      const room = storage.getRoom(user.roomId);
       if (!room) return;
 
-      const player = room.players.find((p) => p.id === socket.id);
-      if (player) {
-        player.isReady = !player.isReady;
-        socket.to(code).emit('room_update', { room });
-        socket.emit('room_update', { room });
+      const users = storage.getRoomUsers(user.roomId);
+
+      // Vérifier que tous les joueurs sont prêts
+      const allReady = users.every(u => u.isReady);
+      if (!allReady) {
+        socket.emit('error', { message: 'Tous les joueurs doivent être prêts', code: 'NOT_ALL_READY' });
+        return;
       }
 
-      const allReady = room.players.length > 0 && room.players.every((p) => p.isReady);
-      if (allReady && room.status === 'lobby') {
-        room.status = 'playing';
-        socket.to(code).emit('game_started', { roomId: code });
-        socket.emit('game_started', { roomId: code });
-        console.log(`[game_started] All players ready in room ${code}`);
+      // Vérifier qu'il y a assez de joueurs
+      if (users.length < 2) {
+        socket.emit('error', { message: 'Il faut au moins 2 joueurs', code: 'NOT_ENOUGH_PLAYERS' });
+        return;
       }
+
+      // Démarrer la partie
+      storage.updateRoomStatus(user.roomId, 'playing');
+      socket.to(user.roomId).emit('room:status_changed', 'playing');
+      socket.emit('room:status_changed', 'playing');
+
+      console.log(`🎮 Partie démarrée dans la room ${user.roomId}`);
     } catch (error) {
-      console.error('❌ Error toggle_ready:', error);
+      console.error('❌ Erreur room:start:', error);
+      socket.emit('error', { message: 'Erreur lors du démarrage de la partie' });
     }
   });
 
   // ===== CHAT MESSAGE =====
-  socket.on('send_message', ({ code, name, message }: { code: string; name: string; message: string }) => {
+  socket.on('chat:send', (content: string) => {
     try {
-      const room = rooms[code];
-      if (!room) return;
+      const user = storage.getUser(socket.id);
+      if (!user || !user.roomId) {
+        socket.emit('error', { message: 'Vous devez être dans une room pour envoyer des messages', code: 'NOT_IN_ROOM' });
+        return;
+      }
 
-      const msg = {
-        id: `${Date.now()}`,
-        name,
-        message,
-        timestamp: new Date().toISOString(),
+      if (!content.trim()) {
+        return;
+      }
+
+      const message: ChatMessage = {
+        id: uuidv4(),
+        roomId: user.roomId,
+        userId: user.id,
+        username: user.username,
+        content: content.trim(),
+        timestamp: new Date(),
       };
 
-      console.log(`[chat] ${name} in ${code}: ${message}`);
-      socket.to(code).emit('message_received', msg);
-      socket.emit('message_received', msg);
+      storage.addMessage(message);
+
+      // Envoyer à tous les membres de la room (incluant l'émetteur)
+      socket.to(user.roomId).emit('chat:message', message);
+      socket.emit('chat:message', message);
+
+      console.log(`💬 ${user.username}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`);
     } catch (error) {
-      console.error('❌ Error send_message:', error);
+      console.error('❌ Erreur chat:send:', error);
+      socket.emit('error', { message: 'Erreur lors de l\'envoi du message' });
     }
   });
 
-  // ===== LEAVE ROOM =====
-  socket.on('leave_room', ({ code }: { code: string }) => {
+  // ===== PLAYER READY =====
+  socket.on('player:set_ready', (isReady: boolean) => {
     try {
-      const room = rooms[code];
-      if (!room) return;
-
-      const playerIndex = room.players.findIndex((p) => p.id === socket.id);
-      if (playerIndex !== -1) {
-        const [removedPlayer] = room.players.splice(playerIndex, 1);
-        socket.leave(code);
-
-        console.log(`[leave_room] ${removedPlayer.name} left ${code}`);
-        socket.to(code).emit('player_left', { player: removedPlayer });
-        socket.to(code).emit('room_update', { room });
-
-        if (room.players.length === 0) {
-          delete rooms[code];
-          console.log(`[cleanup] Room ${code} deleted (empty)`);
-        }
+      const user = storage.getUser(socket.id);
+      if (!user || !user.roomId) {
+        socket.emit('error', { message: 'Vous n\'êtes pas dans une room', code: 'NOT_IN_ROOM' });
+        return;
       }
+
+      storage.updateUserReady(socket.id, isReady);
+
+      const users = storage.getRoomUsers(user.roomId);
+      const room = storage.getRoom(user.roomId);
+
+      socket.to(user.roomId).emit('player:ready', { userId: socket.id, isReady });
+      socket.to(user.roomId).emit('room:update', { users, status: room!.status });
+
+      console.log(`${isReady ? '✅' : '❌'} ${user.username} -> ready: ${isReady}`);
     } catch (error) {
-      console.error('❌ Error leave_room:', error);
+      console.error('❌ Erreur player:set_ready:', error);
+      socket.emit('error', { message: 'Erreur lors de la mise à jour du statut' });
     }
   });
 
-  // ===== DISCONNECT =====
+  // ===== PLAYER ROLE =====
+  socket.on('player:set_role', (role: PlayerRole) => {
+    try {
+      const user = storage.getUser(socket.id);
+      if (!user || !user.roomId) {
+        socket.emit('error', { message: 'Vous n\'êtes pas dans une room', code: 'NOT_IN_ROOM' });
+        return;
+      }
+
+      // Vérifier si le rôle est déjà pris
+      const users = storage.getRoomUsers(user.roomId);
+      const roleTaken = users.some(u => u.id !== socket.id && u.role === role);
+
+      if (roleTaken && role !== null) {
+        socket.emit('error', { message: 'Ce rôle est déjà pris', code: 'ROLE_TAKEN' });
+        return;
+      }
+
+      storage.updateUserRole(socket.id, role);
+
+      const updatedUsers = storage.getRoomUsers(user.roomId);
+      const room = storage.getRoom(user.roomId);
+
+      socket.to(user.roomId).emit('player:role', { userId: socket.id, role });
+      socket.to(user.roomId).emit('room:update', { users: updatedUsers, status: room!.status });
+
+      console.log(`🎭 ${user.username} -> role: ${role}`);
+    } catch (error) {
+      console.error('❌ Erreur player:set_role:', error);
+      socket.emit('error', { message: 'Erreur lors de la mise à jour du rôle' });
+    }
+  });
+
+  // ===== DISCONNECTION =====
   socket.on('disconnect', () => {
-    console.log(`[disconnect] ${socket.id} disconnected`);
-
-    try {
-      for (const [code, room] of Object.entries(rooms)) {
-        const idx = room.players.findIndex((p) => p.id === socket.id);
-        if (idx !== -1) {
-          const [removed] = room.players.splice(idx, 1);
-          socket.to(code).emit('room_update', { room });
-          socket.to(code).emit('player_left', { player: removed });
-          console.log(`[room_update] ${removed.name} left ${code}`);
-        }
-
-        if (room.players.length === 0) {
-          delete rooms[code];
-          console.log(`[cleanup] Room ${code} deleted (empty)`);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error disconnect:', error);
-    }
+    handleDisconnect(socket);
   });
 };
+
+// ===== HELPER FUNCTIONS =====
+
+function handleLeaveRoom(socket: Socket) {
+  try {
+    const user = storage.getUser(socket.id);
+    if (!user || !user.roomId) return;
+
+    const roomId = user.roomId;
+    const room = storage.getRoom(roomId);
+
+    socket.leave(roomId);
+    storage.removeUserFromRoom(socket.id);
+
+    if (room) {
+      const users = storage.getRoomUsers(roomId);
+      socket.to(roomId).emit('room:user_left', {
+        userId: socket.id,
+        username: user.username
+      });
+      socket.to(roomId).emit('room:update', { users, status: room.status });
+    }
+
+    console.log(`👋 ${user.username} a quitté la room ${roomId}`);
+  } catch (error) {
+    console.error('❌ Erreur handleLeaveRoom:', error);
+  }
+}
+
+function handleDisconnect(socket: Socket) {
+  try {
+    const user = storage.getUser(socket.id);
+    if (!user) {
+      console.log(`🔌 Déconnexion: ${socket.id}`);
+      return;
+    }
+
+    console.log(`🔌 Déconnexion: ${user.username} (${socket.id})`);
+
+    // Quitter la room si l'utilisateur y était
+    if (user.roomId) {
+      handleLeaveRoom(socket);
+    }
+
+    // Supprimer l'utilisateur
+    storage.deleteUser(socket.id);
+
+    // Afficher les stats
+    const stats = storage.getStats();
+    console.log(`📊 Stats: ${stats.users} users, ${stats.rooms} rooms, ${stats.messages} messages`);
+  } catch (error) {
+    console.error('❌ Erreur handleDisconnect:', error);
+  }
+}
