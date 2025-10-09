@@ -11,22 +11,22 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Circle } from 'lucide-react';
 import { toast } from 'sonner';
+import {LabyrinthGame} from "@/components/LabyrinthGame.tsx";
+import SevenDifferences from "@/components/SevenDifferences.tsx";
 
 const Paris = () => {
   const navigate = useNavigate();
   const { completeCity, playerRole } = useGame();
 
-  // ✅ Index de la mission active
   const [currentMission, setCurrentMission] = useState(1);
   const [showModal, setShowModal] = useState(false);
 
-  // ✅ État pour chaque mission
   const [binaryInput, setBinaryInput] = useState('');
   const [differencesFound, setDifferencesFound] = useState(0);
 
   const correctBinaryAnswer = '11'; // 1011 en binaire = 11 décimal
   const totalDifferences = 7;
-
+  // a
   // --- Fonctions de résolution ---
   const checkBinary = () => {
     if (binaryInput === correctBinaryAnswer) {
@@ -40,17 +40,6 @@ const Paris = () => {
   const completeLabyrinth = () => {
     toast.success('✓ Labyrinthe résolu !');
     setCurrentMission(3); // passe à la mission 3
-  };
-
-  const findDifference = () => {
-    if (differencesFound < totalDifferences) {
-      const newCount = differencesFound + 1;
-      setDifferencesFound(newCount);
-      if (newCount === totalDifferences) {
-        toast.success('✓ Toutes les différences trouvées !');
-        setShowModal(true); // dernière mission complétée → show modal
-      }
-    }
   };
 
   const handleContinue = () => {
@@ -137,29 +126,34 @@ const Paris = () => {
 
                   <div className="bg-muted/50 p-4 rounded-lg mb-4">
                     {playerRole === 'operator' ? (
-                        <div>
-                          <p className="font-semibold mb-2">📡 Opérateur:</p>
-                          <p className="mb-2">Guidez l'agent avec ces directions:</p>
-                          <p className="text-lg font-mono">→ HAUT → DROITE → BAS → DROITE → HAUT</p>
-                        </div>
-                    ) : (
-                        <div>
-                          <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
-                          <p className="mb-3">Suivez les directions de l'opérateur pour sortir du labyrinthe</p>
-                          <div className="bg-card p-4 rounded border border-border mb-3">
-                            <div className="grid grid-cols-5 gap-1 w-fit mx-auto">
-                              {[...Array(25)].map((_, i) => (
-                                  <div
-                                      key={i}
-                                      className={`w-8 h-8 rounded ${i === 0 ? 'bg-secondary' : i === 24 ? 'bg-primary' : 'bg-muted'}`}
-                                  />
-                              ))}
-                            </div>
+                        <div className="bg-card p-4 rounded border border-border mb-3">
+                          <div className="grid grid-cols-5 gap-1 w-fit mx-auto">
+                            {[...Array(25)].map((_, i) => {
+                              const x = i % 5;
+                              const y = Math.floor(i / 5);
+                              // Cases rouges fixes
+                              const bgColor =
+                                  (x === 1 && y === 1) ||
+                                  (x === 1 && y === 3) ||
+                                  (x === 1 && y === 4) ||
+                                  (x === 2 && y === 1) ||
+                                  (x === 3 && y === 0) ||
+                                  (x === 3 && y === 1) ||
+                                  (x === 3 && y === 3) ||
+                                  (x === 4 && y === 3)
+                                      ? "bg-red-500"
+                                      : i === 0
+                                          ? "bg-secondary"
+                                          : i === 24
+                                              ? "bg-primary"
+                                              : "bg-muted";
+                              return <div key={i} className={`w-8 h-8 rounded ${bgColor}`}/>;
+                            })}
                           </div>
-                          <Button onClick={completeLabyrinth} className="w-full">
-                            J'ai atteint la sortie
-                          </Button>
                         </div>
+
+                    ) : (
+                        <LabyrinthGame onComplete={completeLabyrinth}/>
                     )}
                   </div>
                 </Card>
@@ -172,46 +166,40 @@ const Paris = () => {
                     <div>
                       <h3 className="text-xl font-bold mb-1">
                         <Circle className="inline w-5 h-5 mr-2" />
-                        Énigme 3: Les 7 Différences
+                        Énigme 3 : Les 7 Différences
                       </h3>
-                      <Badge variant="secondary">Difficulté: Moyenne</Badge>
+                      <Badge variant="secondary">Difficulté : Difficile</Badge>
                     </div>
                   </div>
 
                   <div className="bg-muted/50 p-4 rounded-lg mb-4">
-                    {playerRole === 'operator' ? (
+                    {playerRole === "operator" ? (
+                        // VUE OPÉRATEUR
                         <div>
-                          <p className="font-semibold mb-2">📡 Opérateur:</p>
-                          <p className="mb-2">Vous avez l'original. Guidez l'agent vers les différences:</p>
-                          <p className="text-sm">Coin haut gauche, centre, bas droite, etc.</p>
+                          <p className="font-semibold mb-2">📡 Opérateur :</p>
+                          <p className="mb-2">
+                            Vous avez l'image originale. Guidez l'agent vers les différences.
+                          </p>
+                          <div className="bg-card p-4 rounded border border-border text-center">
+                            <img
+                                src="../../public/ARCHE_NOE.png"
+                                alt="Original"
+                                className="rounded-lg mx-auto max-w-full"
+                            />
+                          </div>
                         </div>
                     ) : (
-                        <div>
-                          <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
-                          <p className="mb-3">Trouvez les 7 différences avec l'aide de l'opérateur</p>
-                          <div className="bg-card p-6 rounded border border-border mb-3 text-center">
-                            <p className="text-6xl mb-3">🖼️</p>
-                            <p className="text-sm text-muted-foreground">Cliquez pour trouver une différence</p>
-                          </div>
-                          <div className="mb-3">
-                            <Progress value={(differencesFound / totalDifferences) * 100} className="h-3" />
-                            <p className="text-sm text-center mt-2">
-                              {differencesFound}/{totalDifferences} différences trouvées
-                            </p>
-                          </div>
-                          <Button onClick={findDifference} className="w-full">
-                            Différence trouvée !
-                          </Button>
-                        </div>
+                        // VUE AGENT
+                        <SevenDifferences onComplete={() => setShowModal(true)} />
                     )}
                   </div>
                 </Card>
             )}
+
           </div>
         </main>
-
-        <ChatBox />
-        <ModalEndGame open={showModal} cityName="Paris" code="LISA" onContinue={handleContinue} />
+        <ChatBox/>
+        <ModalEndGame open={showModal} cityName="Paris" onContinue={handleContinue} />
       </div>
   );
 };

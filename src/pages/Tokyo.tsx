@@ -11,47 +11,73 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Circle } from "lucide-react";
 import { toast } from "sonner";
+import {OscilloscopeGame} from "@/components/OscilloscopeGame.tsx";
 
 const Tokyo = () => {
   const navigate = useNavigate();
   const { completeCity, playerRole } = useGame();
 
+  const [voltCode, setVoltCode] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
   const [showModal, setShowModal] = useState(false);
 
-  // Énigme 1 : RGB Fusion
-  const [rgbValues, setRgbValues] = useState({ r: 128, g: 128, b: 128 });
-  const targetRgb = { r: 161, g: 75, b: 226 }; // #A14BE2
+  // Énigme 1 : Oscilloscope
+  const correctVoltage = "5";
 
-  // Énigme 2 : Mot binaire
-  const [binaryWord, setBinaryWord] = useState("");
+  // Énigme 2 : Kanjis
+  const [kanjiWord, setKanjiWord] = useState("");
+  const listOfKanji = ["Rêve", "Coeur", "Voie", "Âme"];
 
   // Énigme 3 : Séquence de couleurs
   const [sequence, setSequence] = useState<string[]>([]);
-  const correctSequence = ["red", "green", "yellow", "blue"];
+  const correctSequence = ["red", "blue", "yellow", "green"];
 
-  const checkRgb = () => {
-    const tolerance = 10;
-    const rMatch = Math.abs(rgbValues.r - targetRgb.r) < tolerance;
-    const gMatch = Math.abs(rgbValues.g - targetRgb.g) < tolerance;
-    const bMatch = Math.abs(rgbValues.b - targetRgb.b) < tolerance;
 
-    if (rMatch && gMatch && bMatch) {
-      toast.success("✓ Couleur parfaite !");
+  const checkVoltCode = () => {
+    if (voltCode === correctVoltage) {
+      toast.success("✓ Code validé !");
       setCurrentStep(2);
     } else {
-      toast.error("Continuez à ajuster les couleurs");
+      toast.error("Code incorrect");
     }
   };
 
-  const checkBinaryWord = () => {
-    if (binaryWord.toUpperCase() === "ART") {
-      toast.success("✓ Mot décodé correctement !");
+  const normalize = (str: string) =>
+      str
+          .normalize("NFD")                 // décompose les caractères accentués
+          .replace(/[\u0300-\u036f]/g, "")  // supprime les diacritiques (accents)
+          .toLowerCase()                    // passe en minuscules
+          .trim();                          // enlève les espaces inutiles
+
+  const checkKanjiWord = () => {
+    const inputWords = kanjiWord
+        .split(/[,\s]+/)
+        .map(normalize)
+        .filter(Boolean);
+
+    if (inputWords.length === 0) {
+      toast.error("Entrez au moins un mot");
+      return;
+    }
+
+    // Normalise aussi la liste de référence
+    const normalizedList = listOfKanji.map(normalize);
+
+    // Vérifie que les deux listes contiennent les mêmes éléments (ordre indifférent)
+    const sameLength = inputWords.length === normalizedList.length;
+    const allInList = inputWords.every(w => normalizedList.includes(w));
+    const noExtra = normalizedList.every(w => inputWords.includes(w));
+
+    if (sameLength && allInList && noExtra) {
+      toast.success("✅ Tous les mots sont corrects !");
+      setKanjiWord("");
       setCurrentStep(3);
     } else {
-      toast.error("Décodage incorrect");
+      toast.error("❌ Certains mots sont incorrects ou manquants");
     }
   };
+
+
 
   const addToSequence = (color: string) => {
     const newSequence = [...sequence, color];
@@ -101,7 +127,7 @@ const Tokyo = () => {
             </div>
 
             <div className="space-y-6">
-              {/* Énigme 1 - RGB Fusion */}
+              {/* Énigme 1 - Oscilloscope */}
               {currentStep >= 1 && (
                   <Card
                       className={`p-6 ${
@@ -115,7 +141,7 @@ const Tokyo = () => {
                         ) : (
                             <Circle className="inline w-5 h-5 mr-2" />
                         )}
-                        Énigme 1: RGB Fusion
+                        Énigme 1: Signal électrique
                       </h3>
                       <Badge variant="secondary">Difficulté: Moyenne</Badge>
                     </div>
@@ -125,54 +151,24 @@ const Tokyo = () => {
                           {playerRole === "operator" ? (
                               <>
                                 <p className="font-semibold mb-2">📡 Opérateur:</p>
-                                <div className="bg-card p-4 rounded border border-primary">
-                                  <p className="text-3xl font-mono text-center text-primary">
-                                    #A14BE2
-                                  </p>
-                                </div>
                                 <p className="text-sm text-muted-foreground mt-2 text-center">
-                                  Envoyez le code couleur à l’agent.
+                                  <Input
+                                      type="text"
+                                      placeholder="Tension du courant"
+                                      value={voltCode}
+                                      onChange={(e) => setVoltCode(e.target.value)}
+                                      maxLength={6}
+                                      className="mb-2"
+                                  />
+                                  <Button onClick={checkVoltCode} className="w-full">
+                                    Valider le code
+                                  </Button>
                                 </p>
                               </>
                           ) : (
                               <>
                                 <p className="font-semibold mb-3">🧑‍🎨 Agent:</p>
-                                <div className="space-y-3">
-                                  {["r", "g", "b"].map((key) => (
-                                      <div key={key}>
-                                        <label className="text-sm mb-1 block">
-                                          {key === "r"
-                                              ? "Rouge"
-                                              : key === "g"
-                                                  ? "Vert"
-                                                  : "Bleu"}
-                                          : {rgbValues[key as "r" | "g" | "b"]}
-                                        </label>
-                                        <input
-                                            type="range"
-                                            min={0}
-                                            max={255}
-                                            value={rgbValues[key as "r" | "g" | "b"]}
-                                            onChange={(e) =>
-                                                setRgbValues((prev) => ({
-                                                  ...prev,
-                                                  [key]: Number(e.target.value),
-                                                }))
-                                            }
-                                            className="w-full"
-                                        />
-                                      </div>
-                                  ))}
-                                </div>
-                                <div
-                                    className="h-24 rounded-lg border-2 border-border mt-4"
-                                    style={{
-                                      backgroundColor: `rgb(${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b})`,
-                                    }}
-                                />
-                                <Button onClick={checkRgb} className="w-full mt-3">
-                                  Vérifier la couleur
-                                </Button>
+                                <OscilloscopeGame />
                               </>
                           )}
                         </div>
@@ -180,7 +176,8 @@ const Tokyo = () => {
                   </Card>
               )}
 
-              {/* Énigme 2 - Transmission Binaire */}
+
+              {/* Énigme 2 - Kanji et signification */}
               {currentStep >= 2 && (
                   <Card
                       className={`p-6 ${
@@ -194,7 +191,7 @@ const Tokyo = () => {
                         ) : (
                             <Circle className="inline w-5 h-5 mr-2" />
                         )}
-                        Énigme 2: Transmission Binaire
+                        Énigme 2: Kanjis et Signification
                       </h3>
                       <Badge variant="secondary">Difficulté: Difficile</Badge>
                     </div>
@@ -203,32 +200,46 @@ const Tokyo = () => {
                         <div className="bg-muted/50 p-4 rounded-lg mb-4">
                           {playerRole === "operator" ? (
                               <>
-                                <p className="font-semibold mb-2">📡 Opérateur:</p>
-                                <p className="mb-2">
-                                  Mot à encoder: <span className="font-bold text-primary">ART</span>
-                                </p>
-                                <div className="bg-card p-3 rounded border border-border">
-                                  <p className="text-sm text-muted-foreground mb-1">
-                                    En binaire:
-                                  </p>
-                                  <p className="font-mono text-sm">
-                                    01000001 01010010 01010100
-                                  </p>
+                                <p className="font-semibold mb-2">📡 Opérateur :</p>
+
+                                <div className="grid grid-cols-5 gap-4 text-center font-serif">
+                                  {[
+                                    { kanji: "風", traduction: "Vent" },
+                                    { kanji: "夢", traduction: "Rêve" },
+                                    { kanji: "力", traduction: "Force" },
+                                    { kanji: "心", traduction: "Cœur" },
+                                    { kanji: "海", traduction: "Mer" },
+                                    { kanji: "道", traduction: "Voie" },
+                                    { kanji: "愛", traduction: "Amour" },
+                                    { kanji: "魂", traduction: "Âme" },
+                                    { kanji: "光", traduction: "Lumière" },
+                                    { kanji: "静", traduction: "Calme" },
+                                  ].map(({ kanji, traduction }) => (
+                                      <div key={kanji}>
+                                        <div className="text-2xl">{kanji}</div>
+                                        <div className="text-sm text-muted-foreground">{traduction}</div>
+                                      </div>
+                                  ))}
                                 </div>
                               </>
                           ) : (
                               <>
-                                <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
-                                <p className="mb-3 text-sm">
-                                  Décodez le message binaire de l'opérateur:
-                                </p>
+                                <p className="font-semibold mb-2">🧑‍🎨 Agent :</p>
+                                <p className="mb-3 text-sm">Trouver les mots clés :</p>
+                                <div className="bg-card p-4 rounded border border-border text-center">
+                                  <img
+                                      src="../../public/Kanjis.png"
+                                      alt="Original"
+                                      className="rounded-lg mx-auto max-w-full"
+                                  />
+                                </div>
                                 <Input
-                                    placeholder="Mot décodé"
-                                    value={binaryWord}
-                                    onChange={(e) => setBinaryWord(e.target.value)}
+                                    placeholder="Mots décodé"
+                                    value={kanjiWord}
+                                    onChange={(e) => setKanjiWord(e.target.value)}
                                     className="mb-2"
                                 />
-                                <Button onClick={checkBinaryWord} className="w-full">
+                                <Button onClick={checkKanjiWord} className="w-full">
                                   Vérifier le mot
                                 </Button>
                               </>
@@ -237,7 +248,6 @@ const Tokyo = () => {
                     )}
                   </Card>
               )}
-
               {/* Énigme 3 - Séquence Simon */}
               {currentStep >= 3 && (
                   <Card
@@ -265,9 +275,9 @@ const Tokyo = () => {
                                 <p className="mb-2">Séquence à reproduire:</p>
                                 <div className="flex gap-2 justify-center">
                                   <div className="w-12 h-12 bg-red-500 rounded-full"></div>
-                                  <div className="w-12 h-12 bg-green-500 rounded-full"></div>
-                                  <div className="w-12 h-12 bg-yellow-500 rounded-full"></div>
                                   <div className="w-12 h-12 bg-blue-500 rounded-full"></div>
+                                  <div className="w-12 h-12 bg-yellow-500 rounded-full"></div>
+                                  <div className="w-12 h-12 bg-green-500 rounded-full"></div>
                                 </div>
                               </>
                           ) : (

@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Circle, Terminal } from "lucide-react";
 import { toast } from "sonner";
+import {TerminalGame} from "@/components/TerminalGame.tsx";
+import {SingleSlotPuzzle} from "@/components/SingleSlotPuzzle.tsx";
 
 const NewYork = () => {
   const navigate = useNavigate();
@@ -24,16 +26,12 @@ const NewYork = () => {
   const [artPlaced, setArtPlaced] = useState(0);
 
   const correctCommand = "edit security.config";
-  const correctShapeCode = "532194";
+  const correctShapeCode = "336";
   const totalArtworks = 6;
 
   const checkCommand = () => {
-    if (commandInput.toLowerCase() === correctCommand) {
-      toast.success("✓ Fichier de sécurité corrigé !");
-      setCurrentStep(2);
-    } else {
-      toast.error("Commande incorrecte");
-    }
+    toast.success("✓ Fichier de sécurité corrigé !");
+    setCurrentStep(2);
   };
 
   const checkShapeCode = () => {
@@ -44,23 +42,6 @@ const NewYork = () => {
       toast.error("Code incorrect");
     }
   };
-
-  const placeArtwork = () => {
-    if (artPlaced < totalArtworks) {
-      const newCount = artPlaced + 1;
-      setArtPlaced(newCount);
-      if (newCount === totalArtworks) {
-        toast.success("✓ Tous les tableaux replacés !");
-        setCurrentStep(4); // toutes les énigmes finies
-      }
-    }
-  };
-
-  const allComplete = currentStep > 3;
-
-  if (allComplete && !showModal) {
-    setShowModal(true);
-  }
 
   const handleContinue = () => {
     completeCity("newyork");
@@ -115,41 +96,19 @@ const NewYork = () => {
                                 <p className="font-semibold mb-2">📡 Opérateur:</p>
                                 <div className="bg-card border border-border rounded p-3 font-mono text-sm mb-3">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <Terminal className="w-4 h-4 text-secondary" />
-                                    <span className="text-secondary">
-                              system@moma:~$
-                            </span>
+                                    <span className="text-secondary">system@moma:~$</span>
                                   </div>
-                                  <p className="text-muted-foreground mb-1">
-                                    # Fichiers disponibles:
-                                  </p>
-                                  <p>- security.config (ERREUR)</p>
-                                  <p>- database.db</p>
-                                  <p>- artwork_list.json</p>
-                                  <p className="mt-2 text-muted-foreground">
-                                    # Tapez la commande pour corriger le fichier
-                                  </p>
+                                  <TerminalGame onComplete={checkCommand} />
                                 </div>
-                                <Input
-                                    placeholder="Entrez votre commande..."
-                                    value={commandInput}
-                                    onChange={(e) => setCommandInput(e.target.value)}
-                                    className="font-mono"
-                                />
-                                <Button onClick={checkCommand} className="w-full mt-2">
-                                  Exécuter
-                                </Button>
                               </>
                           ) : (
                               <>
                                 <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
-                                <p className="mb-3">Fichier à corriger:</p>
+                                <p className="mb-3">Fichier à supprimer:</p>
                                 <div className="bg-card p-4 rounded border border-destructive">
-                                  <p className="text-2xl font-bold text-destructive">
-                                    security.config
-                                  </p>
+                                  <p className="text-2xl font-bold text-destructive">alarm.sh</p>
                                   <p className="text-sm text-muted-foreground mt-2">
-                                    Statut: ERREUR
+                                    Statut: SECURITY
                                   </p>
                                 </div>
                               </>
@@ -158,6 +117,7 @@ const NewYork = () => {
                     )}
                   </Card>
               )}
+
 
               {/* Énigme 2 */}
               {currentStep >= 2 && (
@@ -173,9 +133,9 @@ const NewYork = () => {
                         ) : (
                             <Circle className="inline w-5 h-5 mr-2" />
                         )}
-                        Énigme 2: Compter les Formes
+                        Énigme 2: Trouver le Code
                       </h3>
-                      <Badge variant="secondary">Difficulté: Difficile</Badge>
+                      <Badge variant="secondary">Difficulté: Moyenne</Badge>
                     </div>
 
                     {currentStep === 2 && (
@@ -183,39 +143,47 @@ const NewYork = () => {
                           {playerRole === "operator" ? (
                               <>
                                 <p className="font-semibold mb-2">📡 Opérateur:</p>
-                                <ul className="text-sm space-y-1 mb-3">
-                                  <li>• Carrés → 5</li>
-                                  <li>• Triangles → 3</li>
-                                  <li>• Cercles → 2</li>
-                                  <li>• Hexagones → 1</li>
-                                  <li>• Étoiles → 9</li>
-                                  <li>• Losanges → 4</li>
-                                </ul>
-                                <p className="text-sm text-muted-foreground">
-                                  Code: 532194
-                                </p>
+                                <div className="flex justify-center items-center gap-6">
+                                  {/* Rond */}
+                                  <div className="w-12 h-12 bg-primary rounded-full"/>
+
+                                  {/* Triangle */}
+                                  <div
+                                      className="w-0 h-0 border-l-[24px] border-r-[24px] border-b-[40px] border-l-transparent border-r-transparent border-b-primary"
+                                  />
+
+                                  {/* Carré */}
+                                  <div className="w-12 h-12 bg-primary rounded-sm"/>
+                                </div>
+
                               </>
                           ) : (
                               <>
                                 <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
-                                <p className="mb-3">
-                                  Comptez chaque type de forme et créez le code à 6
-                                  chiffres:
-                                </p>
-                                <div className="grid grid-cols-3 gap-2 mb-4 text-4xl text-center">
-                                  <div>⬜</div>
-                                  <div>🔺</div>
-                                  <div>⚪</div>
-                                  <div>⬡</div>
-                                  <div>⭐</div>
-                                  <div>🔶</div>
+                                <p className="mb-3">Trouvez le code à 3 chiffres :</p>
+                                <div className="flex justify-center items-center gap-4">
+                                <img
+                                      src="../../public/AshantiStool.png"
+                                      alt="Ashanti Stool"
+                                      className="rounded-lg w-60 h-auto object-contain"
+                                  />
+                                  <img
+                                      src="../../public/ReggioSchool.png"
+                                      alt="Reggio School"
+                                      className="rounded-lg w-60 h-auto object-contain"
+                                  />
+                                  <img
+                                      src="../../public/Filaments.png"
+                                      alt="Filaments"
+                                      className="rounded-lg w-60 h-auto object-contain"
+                                  />
                                 </div>
                                 <Input
                                     type="text"
-                                    placeholder="Code à 6 chiffres"
+                                    placeholder="Code à 3 chiffres"
                                     value={shapeCode}
                                     onChange={(e) => setShapeCode(e.target.value)}
-                                    maxLength={6}
+                                    maxLength={3}
                                     className="mb-2"
                                 />
                                 <Button onClick={checkShapeCode} className="w-full">
@@ -242,7 +210,7 @@ const NewYork = () => {
                         ) : (
                             <Circle className="inline w-5 h-5 mr-2" />
                         )}
-                        Énigme 3: Remettre les Tableaux
+                        Énigme 3: Replacer le tableau
                       </h3>
                       <Badge variant="secondary">Difficulté: Moyenne</Badge>
                     </div>
@@ -265,31 +233,9 @@ const NewYork = () => {
                               <>
                                 <p className="font-semibold mb-2">🧑‍🎨 Agent:</p>
                                 <p className="mb-3">
-                                  Replacez les œuvres dans le bon ordre avec l'aide de
-                                  l'opérateur:
+                                  Replacez l'œuvres à son emplacement correct:
                                 </p>
-                                <div className="grid grid-cols-3 gap-2 mb-3">
-                                  {[...Array(6)].map((_, i) => (
-                                      <div
-                                          key={i}
-                                          className={`p-4 rounded border text-center ${
-                                              i < artPlaced
-                                                  ? "border-primary bg-primary/10"
-                                                  : "border-border"
-                                          }`}
-                                      >
-                                        <p className="text-3xl mb-1">🖼️</p>
-                                        <p className="text-xs">Position {i + 1}</p>
-                                      </div>
-                                  ))}
-                                </div>
-                                <Progress
-                                    value={(artPlaced / totalArtworks) * 100}
-                                    className="h-3 mb-3"
-                                />
-                                <Button onClick={placeArtwork} className="w-full">
-                                  Placer l'œuvre ({artPlaced}/{totalArtworks})
-                                </Button>
+                                <SingleSlotPuzzle onComplete={() => setShowModal(true)}/>
                               </>
                           )}
                         </div>
