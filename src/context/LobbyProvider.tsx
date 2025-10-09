@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { io, Socket } from 'socket.io-client';
 import { Room, ChatMessage, LobbyClientEvents, LobbyServerEvents, PlayerRole } from '@/types/lobby';
 import { toast } from '@/hooks/use-toast';
+import { redirect } from 'react-router-dom';
 
 type LobbySocket = Socket<LobbyServerEvents, LobbyClientEvents>;
 
@@ -18,6 +19,9 @@ interface LobbyContextType {
   toggleReady: () => void;
   setRole: (role: PlayerRole) => void;
   startGame: () => void;
+  // 👇 ajout pour synchroniser la progression
+  updateStep: (step: number) => void;
+  onStepUpdated: (callback: (step: number) => void) => void;
 }
 
 const LobbyContext = createContext<LobbyContextType | null>(null);
@@ -58,9 +62,11 @@ export function LobbyProvider({ children }: LobbyProviderProps) {
 
     socketInstance.on('connect_error', (error) => {
       console.error('❌ Erreur de connexion:', error);
+      toast({ title: 'Erreur', description: 'Erreur de connexion au serveur', variant: 'destructive' });
+      redirect('/');
     });
 
-    // Événements du lobby
+    // === 🎮 Événements du lobby ===
     socketInstance.on('room_created', ({ code, room: newRoom }) => {
       console.log('🏠 Room créée:', code);
       setRoom(newRoom);
@@ -113,6 +119,7 @@ export function LobbyProvider({ children }: LobbyProviderProps) {
         description: message,
         variant: 'destructive',
       });
+      redirect('/');
     });
 
     setSocket(socketInstance);
@@ -122,7 +129,7 @@ export function LobbyProvider({ children }: LobbyProviderProps) {
     };
   }, []);
 
-  // Fonctions d'actions
+  // === 💬 Fonctions d'actions ===
   const createRoom = (name: string) => {
     if (!socket || !connected) {
       toast({ title: 'Erreur', description: 'Non connecté au serveur', variant: 'destructive' });
@@ -168,6 +175,22 @@ export function LobbyProvider({ children }: LobbyProviderProps) {
     socket.emit('start_game', { code: room.code });
   };
 
+  // === 🧩 Gestion des étapes synchronisées ===
+  const updateStep = (step: number) => {
+    if (!socket || !room) return;
+    console.log('🚀 Envoi de update_step:', step);
+    socket.emit('update_step', { code: room.code, step });
+  };
+
+  const onStepUpdated = (callback: (step: number) => void) => {
+    if (!socket) return;
+    socket.off('step_updated'); // pour éviter les doublons
+    socket.on('step_updated', ({ step }) => {
+      console.log('🔁 Step reçu:', step);
+      callback(step);
+    });
+  };
+
   return (
     <LobbyContext.Provider
       value={{
@@ -183,6 +206,8 @@ export function LobbyProvider({ children }: LobbyProviderProps) {
         toggleReady,
         setRole,
         startGame,
+        updateStep,
+        onStepUpdated,
       }}
     >
       {children}

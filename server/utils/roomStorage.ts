@@ -34,6 +34,7 @@ class RoomStorage {
             status: 'waiting',
             createdAt: new Date().toISOString(),
             hostId,
+            currentStep: 0,
         };
 
         this.rooms.set(code, room);

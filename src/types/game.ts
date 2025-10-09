@@ -62,6 +62,8 @@ export interface ClientToServerEvents {
   request_hint: (data: { roomId: string; playerId: string; puzzleId: string }) => void;
   set_ready: (data: { roomId: string; playerId: string; isReady: boolean }) => void;
   set_role: (data: { roomId: string; playerId: string; role: PlayerRole }) => void;
+  update_step: (data: { code: string; step: number }) => void;
+  updateGameState: (data: { gameState: GameState }) => void;
 }
 
 // Événements Socket.IO Serveur → Client
@@ -79,4 +81,6 @@ export interface ServerToClientEvents {
   player_ready: (data: { playerId: string; isReady: boolean }) => void;
   player_role: (data: { playerId: string; role: PlayerRole }) => void;
   error: (data: { message: string; code?: string }) => void;
+  step_updated: (data: { step: number }) => void;
+  updateGameState: (data: { gameState: GameState }) => void;
 }

@@ -19,6 +19,7 @@ export interface Room {
     status: RoomStatus;
     createdAt: string;
     hostId: string;
+    currentStep: number;
 }
 
 export interface ChatMessage {
@@ -36,6 +37,7 @@ export interface ClientToServerEvents {
     toggle_ready: (data: { code: string }) => void;
     set_role: (data: { code: string; role: PlayerRole }) => void;
     start_game: (data: { code: string }) => void;
+    update_step: (data: { code: string; step: number }) => void;
 }
 
 // Événements Serveur → Client
@@ -47,4 +49,6 @@ export interface ServerToClientEvents {
     game_started: (data: { room: Room }) => void;
     player_left: (data: { playerId: string; playerName: string }) => void;
     error: (data: { message: string; code?: string }) => void;
+    step_updated: (data: { step: number }) => void;
+
 }

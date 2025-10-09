@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "@/context/GameContext";
 import { useLobby } from "@/context/LobbyProvider";
@@ -12,8 +12,9 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Circle } from 'lucide-react';
 import { toast } from 'sonner';
-import {LabyrinthGame} from "@/components/LabyrinthGame.tsx";
+import { LabyrinthGame } from "@/components/LabyrinthGame.tsx";
 import SevenDifferences from "@/components/SevenDifferences.tsx";
+import { useSocket } from "@/context/SocketProvider"; // Assure-toi d’avoir un context Socket.io
 
 const Paris = () => {
   const navigate = useNavigate();
@@ -28,54 +29,67 @@ const Paris = () => {
   const [binaryInput, setBinaryInput] = useState('');
   const [differencesFound, setDifferencesFound] = useState(0);
 
-  const correctBinaryAnswer = '11'; // 1011 en binaire = 11 décimal
+  const correctBinaryAnswer = '11';
   const totalDifferences = 7;
-  // a
-  // --- Fonctions de résolution ---
-  const checkBinary = () => {
-    if (binaryInput === correctBinaryAnswer) {
-      toast.success('✓ Cadenas déverrouillé !');
-      setCurrentMission(2); // passe à la mission 2
-    } else {
-      toast.error('Code incorrect, réessayez');
-    }
-  };
 
-  const completeLabyrinth = () => {
-    toast.success('✓ Labyrinthe résolu !');
-    setCurrentMission(3); // passe à la mission 3
-  };
+  // ===== SYNCHRO STEP =====
+const { updateStep, onStepUpdated } = useLobby();
 
-  const handleContinue = () => {
-    completeCity('paris');
-    navigate('/cities');
-  };
+useEffect(() => {
+  onStepUpdated((step) => {
+    console.log("🛰️ Étape synchronisée depuis serveur:", step);
+    setCurrentMission(step);
+  });
+}, [onStepUpdated]);
 
-  // --- Calcul de progression ---
+const checkBinary = () => {
+  if (binaryInput === correctBinaryAnswer) {
+    toast.success('✓ Cadenas déverrouillé !');
+    setCurrentMission(2);
+    updateStep(2); // ✅ synchronisé via le lobby
+  } else {
+    toast.error('Code incorrect, réessayez');
+  }
+};
+
+const completeLabyrinth = () => {
+  toast.success('✓ Labyrinthe résolu !');
+  setCurrentMission(3);
+  updateStep(3); // ✅ synchronisé
+};
+
+const handleContinue = () => {
+  toast.success("🏆 Paris terminé ! Déblocage de New York...");
+  completeCity('paris');
+  setTimeout(() => navigate('/cities'), 1500);
+};
+
+
   const progress = (() => {
-    if (currentMission === 1) return 0;
+    if (currentMission === 1) return  0;
     if (currentMission === 2) return 33;
     if (currentMission === 3) return 66 + (differencesFound / totalDifferences) * 34;
     return 100;
   })();
 
+
   return (
-      <div className="min-h-screen bg-gradient-dark">
-        <Navbar />
+    <div className="min-h-screen bg-gradient-dark">
+      <Navbar />
 
-        <main className="container mx-auto px-4 pt-24 pb-12">
-          <div className="max-w-4xl mx-auto text-center mb-8">
-            <div className="text-6xl mb-3">🗼</div>
-            <h1 className="text-4xl font-bold mb-2">Paris - Le Louvre</h1>
-            <p className="text-muted-foreground">Logique, observation et communication</p>
+      <main className="container mx-auto px-4 pt-24 pb-12">
+        <div className="max-w-4xl mx-auto text-center mb-8">
+          <div className="text-6xl mb-3">🗼</div>
+          <h1 className="text-4xl font-bold mb-2">Paris - Le Louvre</h1>
+          <p className="text-muted-foreground">Logique, observation et communication</p>
 
-            <div className="mt-4 max-w-md mx-auto">
-              <Progress value={progress} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2">Progression: {Math.round(progress)}%</p>
-            </div>
+          <div className="mt-4 max-w-md mx-auto">
+            <Progress value={progress} className="h-2" />
+            <p className="text-sm text-muted-foreground mt-2">Progression: {Math.round(progress)}%</p>
           </div>
+        </div>
 
-          <div className="space-y-6">
+        <div className="space-y-6">
             {/* Énigme 1: Conversion Binaire */}
             {currentMission === 1 && (
                 <Card className="p-6">
@@ -194,17 +208,23 @@ const Paris = () => {
                         </div>
                     ) : (
                         // VUE AGENT
-                        <SevenDifferences onComplete={() => setShowModal(true)} />
+                        <SevenDifferences onComplete={handleContinue} />
                     )}
                   </div>
                 </Card>
             )}
 
           </div>
-        </main>
-        <ChatBox/>
-        <ModalEndGame open={showModal} cityName="Paris" code="LISA" onContinue={handleContinue} />
-      </div>
+</main>
+
+      <ChatBox />
+      <ModalEndGame
+        open={showModal}
+        cityName="Paris"
+        code="LISA"
+        onContinue={handleContinue}
+      />
+    </div>
   );
 };
 

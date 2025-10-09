@@ -148,6 +148,35 @@ export function handleLobbyConnection(socket: LobbySocket) {
         }
     });
 
+    // ===== UPDATE STEP =====
+    socket.on('update_step', ({ code, step }) => {
+        try {
+            const room = roomStorage.getRoom(code);
+            console.log(`🔄 Requête update_step reçue pour ${code}: step = ${step}`);
+            if (!room) {
+                socket.emit('error', { message: 'Room introuvable', code: 'ROOM_NOT_FOUND' });
+                return;
+            }
+
+            // Mettre à jour la progression dans la room
+            room.currentStep = step;
+            console.log(`🔄 Room ${code} step mise à jour en mémoire: ${room.currentStep}`);
+
+            // Diffuser à tous les joueurs de la room
+            socket.to(code).emit('step_updated', { step });
+            socket.emit('step_updated', { step }); // aussi à l’émetteur pour cohérence
+            console.log(`🔄 Événement step_updated émis dans ${code}: step = ${step}`);
+
+            console.log(`🔄 Room ${code} mise à jour: step = ${step}`);
+        } catch (error) {
+            console.error('❌ Erreur update_step:', error);
+            socket.emit('error', { message: 'Impossible de mettre à jour la progression' });
+        }
+    });
+
+
+    
+
     // ===== START GAME =====
     socket.on('start_game', ({ code }) => {
         try {
