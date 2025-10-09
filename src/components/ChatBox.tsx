@@ -1,35 +1,72 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Send, MessageCircle } from 'lucide-react';
 import { useGame } from '@/context/GameContext';
-
-interface Message {
-  id: string;
-  sender: 'agent' | 'operator';
-  text: string;
-  timestamp: Date;
-}
+import { socketService } from '@/services/socketService';
+import { useToast } from '@/hooks/use-toast';
+import type { ChatMessage } from '@/types/socket.types';
 
 export const ChatBox = () => {
-  const { playerRole } = useGame();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { sessionId, currentUserId } = useGame();
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isOpen, setIsOpen] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll vers le bas quand nouveau message
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  // Configuration des listeners Socket.IO
+  useEffect(() => {
+    if (!sessionId || !socketService.isSocketConnected()) return;
+
+    // Écouter les nouveaux messages
+    socketService.onChatMessage((message) => {
+      setMessages(prev => [...prev, message]);
+    });
+
+    // Écouter l'historique des messages
+    socketService.onChatHistory((history) => {
+      setMessages(history);
+    });
+
+    // Écouter les erreurs
+    socketService.onError((error) => {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    });
+
+    return () => {
+      socketService.offChatMessage();
+      socketService.offChatHistory();
+      socketService.offError();
+    };
+  }, [sessionId, toast]);
 
   const sendMessage = () => {
-    if (!inputValue.trim() || !playerRole) return;
+    if (!inputValue.trim()) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: playerRole,
-      text: inputValue,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-    setInputValue('');
+    try {
+      socketService.sendMessage(inputValue);
+      setInputValue('');
+    } catch (error) {
+      console.error('Erreur envoi message:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer le message",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -68,7 +105,7 @@ export const ChatBox = () => {
       </div>
 
       <ScrollArea className="flex-1 p-3">
-        <div className="space-y-2">
+        <div className="space-y-2" ref={scrollRef}>
           {messages.length === 0 ? (
             <p className="text-muted-foreground text-sm text-center py-8">
               Aucun message. Commencez à communiquer !
@@ -77,19 +114,25 @@ export const ChatBox = () => {
             messages.map(msg => (
               <div
                 key={msg.id}
-                className={`flex ${msg.sender === playerRole ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${msg.userId === currentUserId ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                    msg.sender === playerRole
+                    msg.userId === currentUserId
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-foreground'
                   }`}
                 >
                   <div className="font-semibold text-xs mb-1">
-                    {msg.sender === 'agent' ? '🧑‍🎨 Agent' : '👨‍💻 Opérateur'}
+                    {msg.username}
                   </div>
-                  {msg.text}
+                  {msg.content}
+                  <div className="text-xs opacity-70 mt-1">
+                    {new Date(msg.timestamp).toLocaleTimeString('fr-FR', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </div>
                 </div>
               </div>
             ))

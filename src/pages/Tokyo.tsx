@@ -312,6 +312,7 @@ const Tokyo = () => {
         <ModalEndGame
             open={showModal}
             cityName="Tokyo"
+            code="FUJI"
             onContinue={handleContinue}
         />
       </div>
