@@ -5,6 +5,14 @@
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 export type PlayerRole = 'agent' | 'operator' | null;
 
+export interface Player {
+  id: string;
+  name: string;
+  connected: boolean;
+  isReady: boolean;
+  joinedAt: number;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -15,12 +23,12 @@ export interface User {
 }
 
 export interface Room {
-  id: string;
-  name: string;
-  status: RoomStatus;
-  createdAt: Date;
-  users: Map<string, User>;
-  maxPlayers: number;
+  roomId: string;
+  players: Player[];
+  status: 'lobby' | 'playing' | 'finished';
+  createdAt: number;
+  timer?: number;
+  interval?: NodeJS.Timeout;
 }
 
 export interface ChatMessage {
@@ -33,43 +41,22 @@ export interface ChatMessage {
 }
 
 export interface ServerToClientEvents {
-  // Messages du chat
-  'chat:message': (message: ChatMessage) => void;
-  'chat:history': (messages: ChatMessage[]) => void;
-  
-  // Gestion de la room
-  'room:created': (room: { id: string; name: string }) => void;
-  'room:joined': (data: { roomId: string; users: User[] }) => void;
-  'room:user_joined': (user: User) => void;
-  'room:user_left': (data: { userId: string; username: string }) => void;
-  'room:status_changed': (status: RoomStatus) => void;
-  'room:users': (users: User[]) => void;
-  'room:update': (data: { users: User[]; status: RoomStatus }) => void;
-  
-  // Gestion des joueurs
-  'player:ready': (data: { userId: string; isReady: boolean }) => void;
-  'player:role': (data: { userId: string; role: PlayerRole }) => void;
-  
-  // Erreurs
-  'error': (error: { message: string; code?: string }) => void;
+  'room_created': (data: { code: string; room: Room }) => void;
+  'room_joined': (data: { room: Room }) => void;
+  'room_update': (data: { room: Room }) => void;
+  'player_joined': (data: { player: Player }) => void;
+  'player_left': (data: { player: Player }) => void;
+  'game_started': (data: { roomId: string }) => void;
+  'message_received': (message: { id: string; name: string; message: string; timestamp: string }) => void;
+  'error': (error: { message: string }) => void;
 }
 
 export interface ClientToServerEvents {
-  // Connexion/Déconnexion
-  'user:register': (data: { username: string }) => void;
-  
-  // Gestion de la room
-  'room:create': (data: { name: string }) => void;
-  'room:join': (roomId: string) => void;
-  'room:leave': () => void;
-  'room:start': () => void;
-  
-  // Chat
-  'chat:send': (content: string) => void;
-  
-  // Joueur
-  'player:set_ready': (isReady: boolean) => void;
-  'player:set_role': (role: PlayerRole) => void;
+  'create_room': (data: { name: string }) => void;
+  'join_room': (data: { code: string; name: string }) => void;
+  'toggle_ready': (data: { code: string }) => void;
+  'send_message': (data: { code: string; name: string; message: string }) => void;
+  'leave_room': (data: { code: string }) => void;
 }
 
 export interface InterServerEvents {

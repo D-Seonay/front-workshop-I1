@@ -56,16 +56,17 @@ export default function SevenDifferences({ onComplete }) {
 
                 {/* Cercles rouges sur différences trouvées */}
                 {found.map((index) => {
-                    const { x, y, r } = differences[index];
+                    const diff = differences[index];
                     return (
                         <div
                             key={index}
-                            className="absolute border-4 border-red-500 rounded-full"
+                            className="absolute border-4 border-red-500 rounded-full pointer-events-none"
                             style={{
-                                left: x - r,
-                                top: y - r,
-                                width: r * 2,
-                                height: r * 2,
+                                left: `${diff.xPct * 100}%`,
+                                top: `${diff.yPct * 100}%`,
+                                width: `${diff.rPct * 200}%`,
+                                height: `${diff.rPct * 200}%`,
+                                transform: 'translate(-50%, -50%)',
                             }}
                         />
                     );

@@ -28,13 +28,15 @@ export const ChatBox = () => {
     if (!sessionId || !socketService.isSocketConnected()) return;
 
     // Écouter les nouveaux messages
-    socketService.onChatMessage((message) => {
-      setMessages(prev => [...prev, message]);
-    });
-
-    // Écouter l'historique des messages
-    socketService.onChatHistory((history) => {
-      setMessages(history);
+    socketService.onMessageReceived((msg) => {
+      setMessages(prev => [...prev, {
+        id: msg.id,
+        roomId: sessionId,
+        userId: msg.name, // Utiliser le nom comme ID temporaire
+        username: msg.name,
+        content: msg.message,
+        timestamp: new Date(msg.timestamp),
+      }]);
     });
 
     // Écouter les erreurs
@@ -47,17 +49,17 @@ export const ChatBox = () => {
     });
 
     return () => {
-      socketService.offChatMessage();
-      socketService.offChatHistory();
+      socketService.offMessageReceived();
       socketService.offError();
     };
   }, [sessionId, toast]);
 
   const sendMessage = () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !sessionId) return;
 
     try {
-      socketService.sendMessage(inputValue);
+      const username = localStorage.getItem('username') || 'Anonyme';
+      socketService.sendMessage(sessionId, username, inputValue);
       setInputValue('');
     } catch (error) {
       console.error('Erreur envoi message:', error);

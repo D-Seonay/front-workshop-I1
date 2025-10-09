@@ -14,7 +14,6 @@ import {
   SocketData 
 } from './types/socket.types';
 import { handleConnection } from './handlers/socketHandlers';
-import { storage } from './utils/storage';
 
 const app = express();
 const httpServer = createServer(app);
@@ -43,24 +42,14 @@ const io = new Server<
 // ===== ROUTES REST (optionnelles) =====
 
 app.get('/health', (req, res) => {
-  const stats = storage.getStats();
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    stats,
   });
 });
 
 app.get('/rooms', (req, res) => {
-  const rooms = storage.getAllRooms().map(room => ({
-    id: room.id,
-    name: room.name,
-    status: room.status,
-    players: room.users.size,
-    maxPlayers: room.maxPlayers,
-    createdAt: room.createdAt,
-  }));
-  res.json(rooms);
+  res.json([]);
 });
 
 // ===== SOCKET.IO =====
@@ -86,10 +75,9 @@ httpServer.listen(PORT, () => {
   console.log(`   GET  /health  → État du serveur`);
   console.log(`   GET  /rooms   → Liste des rooms`);
   console.log('');
-  console.log('⚡ WebSocket Events:');
-  console.log('   user:register, room:create, room:join');
-  console.log('   room:leave, room:start, chat:send');
-  console.log('   player:set_ready, player:set_role');
+   console.log('⚡ WebSocket Events:');
+  console.log('   create_room, join_room, toggle_ready');
+  console.log('   send_message, leave_room');
   console.log('');
 });
 
