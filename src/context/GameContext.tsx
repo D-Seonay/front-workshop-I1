@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { mockRoomApi, RoomPlayer } from '@/services/mockRoomApi';
+import type { Player } from '@/types/socket.types';
 
 interface GameContextType {
     playerRole: 'agent' | 'operator' | null;
@@ -9,7 +9,7 @@ interface GameContextType {
     timeRemaining: number;
     isTimerRunning: boolean;
     missionFailed: boolean;
-    roomPlayers: RoomPlayer[];
+    roomPlayers: Player[];
     currentUserId: string;
     setMissionFailed: (value: boolean) => void;
     setPlayerRole: (role: 'agent' | 'operator') => void;
@@ -19,7 +19,7 @@ interface GameContextType {
     startTimer: () => void;
     stopTimer: () => void;
     resetTimer: () => void;
-    updateRoomPlayers: (players: RoomPlayer[]) => void;
+    updateRoomPlayers: (players: Player[]) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -44,8 +44,15 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const [timeRemaining, setTimeRemaining] = useState(INITIAL_TIME);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [missionFailed, setMissionFailed] = useState(false);
-    const [currentUserId] = useState(mockRoomApi.getCurrentUserId());
-    const [roomPlayers, setRoomPlayers] = useState<RoomPlayer[]>([]);
+    const [currentUserId] = useState(() => {
+        let id = localStorage.getItem('userId');
+        if (!id) {
+            id = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            localStorage.setItem('userId', id);
+        }
+        return id;
+    });
+    const [roomPlayers, setRoomPlayers] = useState<Player[]>([]);
 
     useEffect(() => {
         if (!isTimerRunning) return;
@@ -70,7 +77,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         }
     };
 
-    const updateRoomPlayers = (players: RoomPlayer[]) => {
+    const updateRoomPlayers = (players: Player[]) => {
         setRoomPlayers(players);
     };
 

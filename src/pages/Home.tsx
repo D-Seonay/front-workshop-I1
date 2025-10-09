@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/GameContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Landmark, Plus, LogIn, Globe } from 'lucide-react';
-import { mockRoomApi } from '@/services/mockRoomApi';
+import { socketService } from '@/services/socketService';
 import { useToast } from '@/hooks/use-toast';
 
 const Home = () => {
@@ -16,19 +16,44 @@ const Home = () => {
   const [isJoining, setIsJoining] = useState(false);
   const { toast } = useToast();
 
+  // Connexion au serveur Socket.IO au montage
+  useEffect(() => {
+    const serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
+    socketService.connect(serverUrl);
+
+    return () => {
+      socketService.removeAllListeners();
+    };
+  }, []);
+
   const createSession = async () => {
     setIsCreating(true);
     try {
-      const { room } = await mockRoomApi.createRoom();
-      setSessionId(room.id);
-      navigate('/lobby');
+      const username = localStorage.getItem('username') || `Player_${Math.random().toString(36).substring(2, 7)}`;
+      localStorage.setItem('username', username);
+
+      // Écouter l'événement room_created
+      socketService.onRoomCreated((data) => {
+        setSessionId(data.code);
+        navigate('/lobby');
+      });
+
+      socketService.onError((error) => {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: error.message,
+        });
+        setIsCreating(false);
+      });
+
+      socketService.createRoom(username);
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Erreur",
         description: "Impossible de créer la session",
       });
-    } finally {
       setIsCreating(false);
     }
   };
@@ -38,24 +63,31 @@ const Home = () => {
     
     setIsJoining(true);
     try {
-      const result = await mockRoomApi.joinRoom(joinCode.toUpperCase());
-      if (result) {
-        setSessionId(result.room.id);
+      const username = localStorage.getItem('username') || `Player_${Math.random().toString(36).substring(2, 7)}`;
+      localStorage.setItem('username', username);
+
+      // Écouter l'événement room_joined
+      socketService.onRoomJoined((data) => {
+        setSessionId(data.room.roomId);
         navigate('/lobby');
-      } else {
+      });
+
+      socketService.onError((error) => {
         toast({
           variant: "destructive",
           title: "Session introuvable",
-          description: "Le code de session est invalide ou la partie a déjà commencé",
+          description: error.message,
         });
-      }
+        setIsJoining(false);
+      });
+
+      socketService.joinRoom(joinCode.toUpperCase(), username);
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Erreur",
         description: "Impossible de rejoindre la session",
       });
-    } finally {
       setIsJoining(false);
     }
   };

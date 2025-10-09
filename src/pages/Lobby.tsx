@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Copy, Check, Users, ArrowRight, User, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
-import { mockRoomApi } from '@/services/mockRoomApi';
+import { socketService } from '@/services/socketService';
 
 const Lobby = () => {
   const navigate = useNavigate();
@@ -14,32 +14,42 @@ const Lobby = () => {
   const [copied, setCopied] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  // Charger l'état de la room au montage et polling
+  // Écouter les événements Socket.IO
   useEffect(() => {
     if (!sessionId) {
       navigate('/');
       return;
     }
 
-    const loadRoomState = async () => {
-      const state = await mockRoomApi.getRoomState(sessionId);
-      if (!state) return;
-      updateRoomPlayers(state.players);
-      const currentPlayer = state.players.find(p => p.userId === currentUserId);
-      if (currentPlayer?.role) {
-        setPlayerRole(currentPlayer.role);
-      }
-      if (currentPlayer?.isReady) {
+    // Écouter les mises à jour de la room
+    socketService.onRoomUpdate((data) => {
+      updateRoomPlayers(data.room.players);
+      const currentPlayer = data.room.players.find(p => p.id === socketService.getSocket()?.id);
+      if (currentPlayer?.isReady !== undefined) {
         setIsReady(currentPlayer.isReady);
       }
+    });
+
+    // Écouter les nouveaux joueurs
+    socketService.onPlayerJoined((data) => {
+      toast(`${data.player.name} a rejoint la partie`);
+    });
+
+    // Écouter les départs
+    socketService.onPlayerLeft((data) => {
+      toast(`${data.player.name} a quitté la partie`);
+    });
+
+    // Écouter le démarrage du jeu
+    socketService.onGameStarted((data) => {
+      startTimer();
+      navigate('/cities');
+    });
+
+    return () => {
+      socketService.removeAllListeners();
     };
-
-    loadRoomState();
-
-    // Polling pour simuler les mises à jour en temps réel
-    const interval = setInterval(loadRoomState, 1000);
-    return () => clearInterval(interval);
-  }, [sessionId, currentUserId]);
+  }, [sessionId, navigate, startTimer, updateRoomPlayers]);
 
   const copySessionCode = () => {
     if (sessionId) {
@@ -50,48 +60,32 @@ const Lobby = () => {
     }
   };
 
-  const selectRole = async (role: 'agent' | 'operator') => {
+  const selectRole = (role: 'agent' | 'operator') => {
     if (!sessionId) return;
-
-    const otherPlayer = roomPlayers.find(p => p.userId !== currentUserId);
-    if (otherPlayer?.role === role) {
-      toast.error('Ce rôle est déjà pris par l\'autre joueur');
-      return;
-    }
-
-    const success = await mockRoomApi.updatePlayerRole(sessionId, role);
-    if (success) {
-      setPlayerRole(role);
-      toast.success(`Rôle sélectionné : ${role === 'agent' ? 'Agent' : 'Opérateur'}`);
-    }
+    setPlayerRole(role);
+    toast.success(`Rôle sélectionné : ${role === 'agent' ? 'Agent' : 'Opérateur'}`);
   };
 
-  const toggleReady = async () => {
+  const toggleReady = () => {
     if (!sessionId || !playerRole) return;
 
+    socketService.toggleReady(sessionId);
     const newReadyState = !isReady;
-    const success = await mockRoomApi.setPlayerReady(sessionId, newReadyState);
-    if (success) {
-      setIsReady(newReadyState);
-      toast.success(newReadyState ? 'Vous êtes prêt !' : 'Vous n\'êtes plus prêt');
-    }
+    setIsReady(newReadyState);
+    toast.success(newReadyState ? 'Vous êtes prêt !' : 'Vous n\'êtes plus prêt');
   };
 
-  const startGame = async () => {
+  const startGame = () => {
     if (!sessionId) return;
-
-    const success = await mockRoomApi.startGame(sessionId);
-    if (success) {
-      startTimer();
-      navigate('/cities');
-    }
+    // Le démarrage sera géré automatiquement par l'événement game_started
+    // qui se déclenche quand tous les joueurs sont prêts
   };
 
-  const currentPlayer = roomPlayers.find(p => p.userId === currentUserId);
-  const otherPlayer = roomPlayers.find(p => p.userId !== currentUserId);
-  const bothPlayersReady = roomPlayers.length === 2 &&
-      roomPlayers.every(p => p.isReady && p.role);
-  const canStart = bothPlayersReady;
+  const socketId = socketService.getSocket()?.id;
+  const currentPlayer = roomPlayers.find(p => p.id === socketId);
+  const otherPlayer = roomPlayers.find(p => p.id !== socketId);
+  const bothPlayersReady = roomPlayers.length === 2 && roomPlayers.every(p => p.isReady);
+  const canStart = bothPlayersReady && playerRole !== null;
 
   return (
       <div className="min-h-screen bg-gradient-dark flex items-center justify-center p-4">
@@ -131,11 +125,9 @@ const Lobby = () => {
                     className={`p-6 cursor-pointer transition-all border-2 ${
                         playerRole === 'agent'
                             ? 'border-primary bg-primary/10 shadow-glow-gold'
-                            : otherPlayer?.role === 'agent'
-                                ? 'opacity-50 cursor-not-allowed border-border'
-                                : 'border-border hover:border-primary/50'
+                            : 'border-border hover:border-primary/50'
                     }`}
-                    onClick={() => otherPlayer?.role !== 'agent' && selectRole('agent')}
+                    onClick={() => selectRole('agent')}
                 >
                   <div className="flex flex-col items-center text-center">
                     <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-4">
@@ -148,9 +140,6 @@ const Lobby = () => {
                     {playerRole === 'agent' && (
                         <Badge className="bg-primary">Sélectionné</Badge>
                     )}
-                    {otherPlayer?.role === 'agent' && (
-                        <Badge variant="secondary">Pris par l'autre joueur</Badge>
-                    )}
                   </div>
                 </Card>
 
@@ -158,11 +147,9 @@ const Lobby = () => {
                     className={`p-6 cursor-pointer transition-all border-2 ${
                         playerRole === 'operator'
                             ? 'border-secondary bg-secondary/10 shadow-glow-cyan'
-                            : otherPlayer?.role === 'operator'
-                                ? 'opacity-50 cursor-not-allowed border-border'
-                                : 'border-border hover:border-secondary/50'
+                            : 'border-border hover:border-secondary/50'
                     }`}
-                    onClick={() => otherPlayer?.role !== 'operator' && selectRole('operator')}
+                    onClick={() => selectRole('operator')}
                 >
                   <div className="flex flex-col items-center text-center">
                     <div className="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mb-4">
@@ -175,9 +162,6 @@ const Lobby = () => {
                     {playerRole === 'operator' && (
                         <Badge className="bg-secondary">Sélectionné</Badge>
                     )}
-                    {otherPlayer?.role === 'operator' && (
-                        <Badge variant="secondary">Pris par l'autre joueur</Badge>
-                    )}
                   </div>
                 </Card>
               </div>
@@ -189,19 +173,17 @@ const Lobby = () => {
                 <div className="flex items-center justify-between p-3 bg-card/50 rounded">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-primary" />
-                    <span>Vous ({currentPlayer?.role === 'agent' ? 'Agent' : currentPlayer?.role === 'operator' ? 'Opérateur' : 'Non sélectionné'})</span>
+                    <span>Vous ({playerRole === 'agent' ? 'Agent' : playerRole === 'operator' ? 'Opérateur' : 'Non sélectionné'})</span>
                   </div>
-                  <Badge variant={currentPlayer?.isReady ? 'default' : 'secondary'}>
-                    {currentPlayer?.isReady ? '✓ Prêt' : 'En attente'}
+                  <Badge variant={isReady ? 'default' : 'secondary'}>
+                    {isReady ? '✓ Prêt' : 'En attente'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-card/50 rounded">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-secondary" />
                     <span>
-                    Coéquipier {otherPlayer
-                        ? `(${otherPlayer.role === 'agent' ? 'Agent' : otherPlayer.role === 'operator' ? 'Opérateur' : 'Non sélectionné'})`
-                        : '(En attente de connexion...)'}
+                    Coéquipier {otherPlayer ? `(${otherPlayer.name})` : '(En attente de connexion...)'}
                   </span>
                   </div>
                   <Badge variant={otherPlayer?.isReady ? 'default' : 'secondary'}>
