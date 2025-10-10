@@ -18,6 +18,8 @@ export interface Room {
     players: Player[];
     status: RoomStatus;
     createdAt: string;
+    currentMission: number;
+    completedCities: Set<string>;
     hostId: string;
 }
 
@@ -36,6 +38,7 @@ export interface ClientToServerEvents {
     toggle_ready: (data: { code: string }) => void;
     set_role: (data: { code: string; role: PlayerRole }) => void;
     start_game: (data: { code: string }) => void;
+    "room:update": (room: Room) => void; // ← ajoute cette ligne
 }
 
 // Événements Serveur → Client
@@ -47,4 +50,6 @@ export interface ServerToClientEvents {
     game_started: (data: { room: Room }) => void;
     player_left: (data: { playerId: string; playerName: string }) => void;
     error: (data: { message: string; code?: string }) => void;
+    mission_update: (data: { room: Room } ) => void;
+    completedCities_update: (data: { room: Room, city: string } ) => void;
 }

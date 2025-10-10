@@ -1,4 +1,4 @@
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "@/context/GameContext";
 import { useLobby } from "@/context/LobbyProvider";
@@ -14,11 +14,12 @@ import { CheckCircle, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import {LabyrinthGame} from "@/components/LabyrinthGame.tsx";
 import SevenDifferences from "@/components/SevenDifferences.tsx";
+import {useSocket} from "@/context/SocketProvider.tsx";
 
 const Paris = () => {
   const navigate = useNavigate();
   const { completeCity } = useGame();
-  const { room, currentPlayerId } = useLobby();
+  let { room, currentPlayerId } = useLobby();
 
   const currentPlayer = room?.players.find(p => p.id === currentPlayerId);
 
@@ -30,12 +31,31 @@ const Paris = () => {
 
   const correctBinaryAnswer = '11'; // 1011 en binaire = 11 décimal
   const totalDifferences = 7;
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!room?.code) return;
+
+    socket.emit("join_room", room.code); // <-- on dit au serveur que ce socket fait partie de cette room
+
+    const handleRoomUpdate = (updatedRoom) => {
+      setCurrentMission(updatedRoom.currentMission);
+    };
+
+    socket.on("room:update", handleRoomUpdate);
+
+    return () => {
+      socket.off("room:update", handleRoomUpdate);
+    };
+  }, [socket, room?.code]);
+
+
+
   // a
   // --- Fonctions de résolution ---
   const checkBinary = () => {
     if (binaryInput === correctBinaryAnswer) {
       toast.success('✓ Cadenas déverrouillé !');
-      setCurrentMission(2); // passe à la mission 2
+      socket.emit("mission_update", {roomCode: room?.code, number: 2});
     } else {
       toast.error('Code incorrect, réessayez');
     }
@@ -43,12 +63,14 @@ const Paris = () => {
 
   const completeLabyrinth = () => {
     toast.success('✓ Labyrinthe résolu !');
-    setCurrentMission(3); // passe à la mission 3
+    socket.emit("mission_update", {roomCode: room?.code, number: 3});
   };
 
   const handleContinue = () => {
-    completeCity('paris');
+    socket.emit("completedCities_update", { roomCode: room?.code, cities: "paris" });
     navigate('/cities');
+    socket.emit("mission_update", {roomCode: room?.code, number: 1});
+
   };
 
   // --- Calcul de progression ---

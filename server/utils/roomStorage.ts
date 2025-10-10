@@ -4,6 +4,7 @@
 
 import { Room, Player } from '../types/room.types';
 import { generateRoomCode } from './generateCode';
+import {list} from "postcss";
 
 class RoomStorage {
     private rooms: Map<string, Room> = new Map();
@@ -15,7 +16,6 @@ class RoomStorage {
     createRoom(hostId: string, hostName: string): Room {
         let code: string;
 
-        // Générer un code unique
         do {
             code = generateRoomCode();
         } while (this.rooms.has(code));
@@ -32,6 +32,8 @@ class RoomStorage {
             code,
             players: [host],
             status: 'waiting',
+            currentMission: 1,
+            completedCities: new Set<string>(),
             createdAt: new Date().toISOString(),
             hostId,
         };
@@ -42,6 +44,7 @@ class RoomStorage {
         console.log(`🏠 Room créée: ${code} par ${hostName}`);
         return room;
     }
+
 
     /**
      * Récupère une room par son code
@@ -198,6 +201,27 @@ class RoomStorage {
     getAllRooms(): Room[] {
         return Array.from(this.rooms.values());
     }
+
+    updateMission(code: string, mission: number) {
+        const room = this.rooms.get(code);
+        if (!room) return null;
+        room.currentMission = mission;
+        return room;
+    }
+
+    updateCompletedCities(code: string, city: string) {
+        const room = this.rooms.get(code);
+        if (!room) return null;
+        room.completedCities.add(city);
+        return room;
+    }
+
+    // Exemple : calcul simple dans RoomStorage ou dans game socket
+    getProgress(room: Room): number {
+        return room.currentMission;
+    }
+
+
 }
 
 export const roomStorage = new RoomStorage();

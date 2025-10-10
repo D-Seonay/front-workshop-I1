@@ -10,6 +10,7 @@ import cors from 'cors';
 import { ClientToServerEvents, ServerToClientEvents } from './types/room.types';
 import { handleLobbyConnection } from './sockets/lobby';
 import { roomStorage } from './utils/roomStorage';
+import {handleGameConnection} from "./sockets/game";
 
 const app = express();
 const httpServer = createServer(app);
@@ -57,6 +58,7 @@ app.get('/rooms', (req, res) => {
 
 io.on('connection', (socket) => {
   handleLobbyConnection(socket);
+  handleGameConnection(io, socket);
 });
 
 // ===== DÉMARRAGE DU SERVEUR =====
